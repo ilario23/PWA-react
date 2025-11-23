@@ -33,9 +33,14 @@ export function TransactionsPage() {
     const now = new Date();
     const [selectedMonth, setSelectedMonth] = useState(format(now, 'yyyy-MM'));
     const [selectedYear, setSelectedYear] = useState(format(now, 'yyyy'));
+    const [showAllMonths, setShowAllMonths] = useState(false);
 
     // Pass undefined for limit, and the selectedMonth (which is in yyyy-MM format) for yearMonth
-    const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions(undefined, selectedMonth);
+    // When showAllMonths is true, pass only the year
+    const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions(
+        undefined,
+        showAllMonths ? selectedYear : selectedMonth
+    );
 
     const { t } = useTranslation();
     const { categories } = useCategories();
@@ -47,6 +52,7 @@ export function TransactionsPage() {
 
     // Generate months
     const months = [
+        { value: 'all', label: t('all') || 'All' },
         { value: '01', label: t('january') },
         { value: '02', label: t('february') },
         { value: '03', label: t('march') },
@@ -62,13 +68,23 @@ export function TransactionsPage() {
     ];
 
     const handleMonthChange = (monthValue: string) => {
-        setSelectedMonth(`${selectedYear}-${monthValue}`);
+        if (monthValue === 'all') {
+            setShowAllMonths(true);
+            setSelectedMonth(selectedYear);
+        } else {
+            setShowAllMonths(false);
+            setSelectedMonth(`${selectedYear}-${monthValue}`);
+        }
     };
 
     const handleYearChange = (year: string) => {
         setSelectedYear(year);
-        const currentMonthPart = selectedMonth.split('-')[1];
-        setSelectedMonth(`${year}-${currentMonthPart}`);
+        if (showAllMonths) {
+            setSelectedMonth(year);
+        } else {
+            const currentMonthPart = selectedMonth.split('-')[1];
+            setSelectedMonth(`${year}-${currentMonthPart}`);
+        }
     };
     const [isOpen, setIsOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -321,6 +337,7 @@ export function TransactionsPage() {
 
     return (
         <div className="space-y-4">
+            {/* First row: Title and action buttons */}
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">{t('transactions')}</h1>
                 <div className="flex gap-2">
@@ -341,9 +358,9 @@ export function TransactionsPage() {
                         </Sheet>
                     </div>
 
-                    {/* Date Selectors */}
-                    <div className="flex gap-2">
-                        <Select value={selectedMonth.split('-')[1]} onValueChange={handleMonthChange}>
+                    {/* Date Selectors - Desktop only */}
+                    <div className="hidden md:flex gap-2">
+                        <Select value={showAllMonths ? 'all' : selectedMonth.split('-')[1]} onValueChange={handleMonthChange}>
                             <SelectTrigger className="w-[130px]">
                                 <SelectValue />
                             </SelectTrigger>
@@ -467,6 +484,34 @@ export function TransactionsPage() {
                         </DialogContent>
                     </Dialog>
                 </div>
+            </div>
+
+            {/* Second row: Date Selectors - Mobile only */}
+            <div className="flex gap-2 md:hidden">
+                <Select value={showAllMonths ? 'all' : selectedMonth.split('-')[1]} onValueChange={handleMonthChange}>
+                    <SelectTrigger className="w-[130px]">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {months.map(month => (
+                            <SelectItem key={month.value} value={month.value}>
+                                {month.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select value={selectedYear} onValueChange={handleYearChange}>
+                    <SelectTrigger className="w-[100px]">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {years.map(year => (
+                            <SelectItem key={year} value={year}>
+                                {year}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             {/* Active Filters Summary */}
