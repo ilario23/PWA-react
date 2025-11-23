@@ -136,5 +136,7 @@
     "cumulative_expenses": "Spese Cumulative",
     "monthly_expenses_trend": "Tendenza Spese Mensili",
     "cumulative_daily_expenses": "Spese cumulative giornaliere",
-    "total_expenses_this_month": "Spese totali questo mese"
+    "total_expenses_this_month": "Spese totali questo mese",
+    "saving_rate": "Tasso di Risparmio",
+    "saving_rate_with_investments": "Tasso di Risparmio (incl. Investimenti)"
 }

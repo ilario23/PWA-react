@@ -165,41 +165,69 @@ export function StatisticsPage() {
             </Tabs>
 
             {/* Summary Cards - Always visible, dynamic content based on selected tab */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2 md:gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t('total_income')}</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-green-500" />
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                        <CardTitle className="text-xs md:text-sm font-medium">{t('total_income')}</CardTitle>
+                        <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-500">+€{currentStats.income.toFixed(2)}</div>
+                    <CardContent className="pb-2 md:pb-6">
+                        <div className="text-lg md:text-2xl font-bold text-green-500">+€{currentStats.income.toFixed(2)}</div>
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t('total_expenses')}</CardTitle>
-                        <TrendingDown className="h-4 w-4 text-red-500" />
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                        <CardTitle className="text-xs md:text-sm font-medium">{t('total_expenses')}</CardTitle>
+                        <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-red-500" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-red-500">-€{currentStats.expense.toFixed(2)}</div>
+                    <CardContent className="pb-2 md:pb-6">
+                        <div className="text-lg md:text-2xl font-bold text-red-500">-€{currentStats.expense.toFixed(2)}</div>
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t('investment')}</CardTitle>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                        <CardTitle className="text-xs md:text-sm font-medium">{t('investment')}</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-blue-500">€{currentStats.investment.toFixed(2)}</div>
+                    <CardContent className="pb-2 md:pb-6">
+                        <div className="text-lg md:text-2xl font-bold text-blue-500">€{currentStats.investment.toFixed(2)}</div>
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t('net_balance')}</CardTitle>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                        <CardTitle className="text-xs md:text-sm font-medium">{t('net_balance')}</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className={`text-2xl font-bold ${currentNetBalance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    <CardContent className="pb-2 md:pb-6">
+                        <div className={`text-lg md:text-2xl font-bold ${currentNetBalance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                             {currentNetBalance >= 0 ? '+' : ''}€{currentNetBalance.toFixed(2)}
                         </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                        <CardTitle className="text-xs md:text-sm font-medium">{t('saving_rate')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-2 md:pb-6">
+                        {currentStats.income > 0 ? (
+                            <div className={`text-lg md:text-2xl font-bold ${((currentStats.income - currentStats.expense) / currentStats.income * 100) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {((currentStats.income - currentStats.expense) / currentStats.income * 100).toFixed(1)}%
+                            </div>
+                        ) : (
+                            <div className="text-lg md:text-2xl font-bold text-muted-foreground">-</div>
+                        )}
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                        <CardTitle className="text-xs md:text-sm font-medium">{t('saving_rate_with_investments')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-2 md:pb-6">
+                        {currentStats.income > 0 ? (
+                            <div className={`text-lg md:text-2xl font-bold ${((currentStats.income - currentStats.expense - currentStats.investment) / currentStats.income * 100) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {((currentStats.income - currentStats.expense - currentStats.investment) / currentStats.income * 100).toFixed(1)}%
+                            </div>
+                        ) : (
+                            <div className="text-lg md:text-2xl font-bold text-muted-foreground">-</div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

@@ -136,5 +136,7 @@
     "cumulative_expenses": "Cumulative Expenses",
     "monthly_expenses_trend": "Monthly Expenses Trend",
     "cumulative_daily_expenses": "Cumulative daily expenses",
-    "total_expenses_this_month": "Total expenses this month"
+    "total_expenses_this_month": "Total expenses this month",
+    "saving_rate": "Saving Rate",
+    "saving_rate_with_investments": "Saving Rate (incl. Investments)"
 }
