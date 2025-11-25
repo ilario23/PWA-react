@@ -1,73 +1,67 @@
-# React + TypeScript + Vite
+# Personal Expense Tracker PWA
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, offline-first Progressive Web App for managing personal finances. Track your income, expenses, and investments with a beautiful, responsive interface that works seamlessly online and offline.
 
-Currently, two official plugins are available:
+![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)
+![React](https://img.shields.io/badge/React-19.2-61dafb.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Key Features
 
-## React Compiler
+- 🔄 **Offline-First** - Full functionality without internet connection
+- 💰 **Financial Management** - Track income, expenses, and investments
+- 📊 **Analytics** - Detailed charts and statistics
+- 🎨 **Modern UI** - Responsive design with dark/light themes
+- 🌍 **Multi-language** - English and Italian support
+- 📱 **PWA** - Installable on mobile and desktop
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🚀 Quick Start
 
-## Expanding the ESLint configuration
+```bash
+# Install dependencies
+npm install
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your Supabase credentials
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Start development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 📚 Documentation
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Complete documentation is available in the [`docs/`](./docs) folder:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **[README](./docs/README.md)** - Detailed project overview and features
+- **[Architecture Guide](./docs/ARCHITECTURE.md)** - Technical architecture and design
+- **[API Reference](./docs/API_REFERENCE.md)** - Hooks, interfaces, and utilities
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - How to deploy to production
+- **[Contributing Guide](./docs/CONTRIBUTING.md)** - Guidelines for contributors
+- **[User Guide](./docs/USER_GUIDE.md)** - End-user documentation
+
+## 🛠️ Tech Stack
+
+- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Data**: Dexie (IndexedDB), Supabase (PostgreSQL + Auth)
+- **PWA**: vite-plugin-pwa, Workbox
+- **i18n**: i18next, react-i18next
+
+## 📜 Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read the [Contributing Guide](./docs/CONTRIBUTING.md) for details.
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+**Made with ❤️ for better personal finance management**
