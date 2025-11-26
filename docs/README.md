@@ -2,7 +2,7 @@
 
 A modern, offline-first Progressive Web App for managing personal finances. Track your income, expenses, and investments with a beautiful, responsive interface that works seamlessly online and offline.
 
-![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)
 ![React](https://img.shields.io/badge/React-19.2-61dafb.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -10,27 +10,43 @@ A modern, offline-first Progressive Web App for managing personal finances. Trac
 ## ✨ Key Features
 
 ### 🔄 Offline-First Architecture
+
 - **Full offline functionality** - All features work without internet connection
 - **Local-first data storage** using IndexedDB (Dexie)
 - **Automatic background sync** when connection is restored
 - **Delta synchronization** for efficient data updates
-- **Conflict-free sync** using sync tokens
+- **Realtime sync** with Supabase Realtime for instant cross-device updates
+- **Conflict-free sync** using sync tokens (last-write-wins)
 
 ### 💰 Financial Management
+
 - **Transaction tracking** - Record income, expenses, and investments
 - **Hierarchical categories** - Organize with unlimited nested subcategories
 - **Contexts** - Tag transactions with custom contexts (e.g., "Work", "Personal")
-- **Recurring transactions** - Automate regular income/expenses (daily, weekly, monthly, yearly)
+- **Recurring transactions** - Automate regular income/expenses with auto-generation
+- **Monthly budget** - Set spending limits and track progress
+- **Budget notifications** - Warnings at 80% and alerts when exceeded
+- **Group expenses** - Share expenses with others and track who paid
 - **Multi-currency support** - Configure your preferred currency
 
 ### 📊 Analytics & Insights
-- **Dashboard overview** - Quick summary of your financial status
+
+- **Dashboard overview** - Quick summary with budget progress bar
 - **Statistics page** - Detailed charts and visualizations
 - **Category breakdown** - See spending patterns by category
+- **Context analytics** - Track spending by context
 - **Trend analysis** - Track financial trends over time
+- **Burn rate** - Daily spending velocity and projections
 - **Monthly/yearly views** - Filter data by time period
 
+### 💾 Data Management
+
+- **Export to JSON** - Download all your data as backup
+- **Import from JSON** - Restore data from backup file
+- **Clear local cache** - Troubleshoot sync issues
+
 ### 🎨 Modern UI/UX
+
 - **Responsive design** - Works perfectly on mobile, tablet, and desktop
 - **Dark/light/system themes** - Choose your preferred appearance
 - **Customizable accent colors** - Personalize the interface
@@ -38,11 +54,13 @@ A modern, offline-first Progressive Web App for managing personal finances. Trac
 - **Accessible** - Built with accessibility in mind
 
 ### 🌍 Internationalization
+
 - **Multi-language support** - Currently supports English and Italian
 - **Easy to extend** - Add new languages with JSON translation files
 - **Automatic language detection** - Uses browser preferences
 
 ### 📱 PWA Capabilities
+
 - **Installable** - Add to home screen on mobile and desktop
 - **Works offline** - Full functionality without internet
 - **Fast loading** - Optimized caching strategies
@@ -51,6 +69,7 @@ A modern, offline-first Progressive Web App for managing personal finances. Trac
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - **[React 19](https://react.dev/)** - UI framework
 - **[TypeScript](https://www.typescriptlang.org/)** - Type safety
 - **[Vite](https://vitejs.dev/)** - Build tool and dev server
@@ -61,55 +80,63 @@ A modern, offline-first Progressive Web App for managing personal finances. Trac
 - **[Recharts](https://recharts.org/)** - Chart library
 
 ### Data & State
+
 - **[Dexie](https://dexie.org/)** - IndexedDB wrapper for local storage
 - **[Supabase](https://supabase.com/)** - Backend as a Service (PostgreSQL + Auth)
 - **[i18next](https://www.i18next.com/)** - Internationalization framework
 
 ### PWA
+
 - **[vite-plugin-pwa](https://vite-pwa-org.netlify.app/)** - PWA plugin for Vite
 - **[Workbox](https://developer.chrome.com/docs/workbox/)** - Service worker library
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+ and npm/pnpm
 - Supabase account (for backend)
 
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd pwa-antigravity
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
-   
+
    Create a `.env` file in the root directory:
+
    ```env
    VITE_SUPABASE_URL=your_supabase_project_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
 4. **Set up Supabase database**
-   
+
    Run the SQL schema in your Supabase project:
+
    ```bash
    # Copy the contents of supabase_schema.sql and run it in your Supabase SQL editor
    ```
 
 5. **Start the development server**
+
    ```bash
    npm run dev
    ```
 
 6. **Open your browser**
-   
+
    Navigate to `http://localhost:5173`
 
 ## 📁 Project Structure

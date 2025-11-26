@@ -17,18 +17,20 @@ All database interfaces are defined in [src/lib/db.ts](file:///Users/ilariopc/Co
 
 ```typescript
 interface Transaction {
-    id: string;                 // UUID
-    user_id: string;            // User identifier
-    category_id: string;        // Category reference (required)
-    context_id?: string;        // Context reference (optional)
-    type: 'income' | 'expense' | 'investment';
-    amount: number;             // Transaction amount
-    date: string;               // ISO date string (YYYY-MM-DD)
-    year_month: string;         // Computed field (YYYY-MM)
-    description: string;        // Transaction description
-    deleted_at?: string | null; // Soft delete timestamp
-    pendingSync?: number;       // 1 if needs sync, 0 if synced
-    sync_token?: number;        // Server sync token
+  id: string; // UUID
+  user_id: string; // User identifier
+  group_id?: string | null; // Group reference (null = personal)
+  paid_by_user_id?: string | null; // Who paid (required for group transactions)
+  category_id: string; // Category reference (required)
+  context_id?: string; // Context reference (optional)
+  type: "income" | "expense" | "investment";
+  amount: number; // Transaction amount
+  date: string; // ISO date string (YYYY-MM-DD)
+  year_month: string; // Computed field (YYYY-MM)
+  description: string; // Transaction description
+  deleted_at?: string | null; // Soft delete timestamp
+  pendingSync?: number; // 1 if needs sync, 0 if synced
+  sync_token?: number; // Server sync token
 }
 ```
 
@@ -36,17 +38,18 @@ interface Transaction {
 
 ```typescript
 interface Category {
-    id: string;
-    user_id: string;
-    name: string;
-    icon: string;               // Lucide icon name
-    color: string;              // Tailwind color name
-    type: 'income' | 'expense' | 'investment';
-    parent_id?: string;         // Parent category ID for hierarchy
-    active: number;             // 1 or 0 (boolean)
-    deleted_at?: string | null;
-    pendingSync?: number;
-    sync_token?: number;
+  id: string;
+  user_id: string;
+  group_id?: string | null; // Group reference (null = personal)
+  name: string;
+  icon: string; // Lucide icon name
+  color: string; // Tailwind color name
+  type: "income" | "expense" | "investment";
+  parent_id?: string; // Parent category ID for hierarchy
+  active: number; // 1 or 0 (boolean)
+  deleted_at?: string | null;
+  pendingSync?: number;
+  sync_token?: number;
 }
 ```
 
@@ -54,14 +57,14 @@ interface Category {
 
 ```typescript
 interface Context {
-    id: string;
-    user_id: string;
-    name: string;
-    description?: string;
-    active: number;             // 1 or 0 (boolean)
-    deleted_at?: string | null;
-    pendingSync?: number;
-    sync_token?: number;
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  active: number; // 1 or 0 (boolean)
+  deleted_at?: string | null;
+  pendingSync?: number;
+  sync_token?: number;
 }
 ```
 
@@ -69,21 +72,23 @@ interface Context {
 
 ```typescript
 interface RecurringTransaction {
-    id: string;
-    user_id: string;
-    type: 'income' | 'expense' | 'investment';
-    category_id: string;        // Required
-    context_id?: string;
-    amount: number;
-    description: string;        // Required
-    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
-    start_date: string;         // ISO date string
-    end_date?: string | null;   // Optional end date
-    active: number;             // 1 or 0 (boolean)
-    last_generated?: string;    // Last generation timestamp
-    deleted_at?: string | null;
-    pendingSync?: number;
-    sync_token?: number;
+  id: string;
+  user_id: string;
+  group_id?: string | null; // Group reference (null = personal)
+  paid_by_user_id?: string | null; // Who pays (required for group)
+  type: "income" | "expense" | "investment";
+  category_id: string; // Required
+  context_id?: string;
+  amount: number;
+  description: string; // Required
+  frequency: "daily" | "weekly" | "monthly" | "yearly";
+  start_date: string; // ISO date string
+  end_date?: string | null; // Optional end date
+  active: number; // 1 or 0 (boolean)
+  last_generated?: string; // Last generation timestamp
+  deleted_at?: string | null;
+  pendingSync?: number;
+  sync_token?: number;
 }
 ```
 
@@ -91,17 +96,19 @@ interface RecurringTransaction {
 
 ```typescript
 interface Setting {
-    user_id: string;            // Primary key
-    currency: string;           // e.g., 'EUR', 'USD'
-    language: string;           // e.g., 'en', 'it'
-    theme: string;              // 'light', 'dark', 'system'
-    accentColor: string;        // Tailwind color name
-    start_of_week: string;      // 'monday' or 'sunday'
-    default_view: string;       // 'list' or 'grid'
-    include_investments_in_expense_totals: boolean;
-    cached_month?: number;      // Currently cached month
-    last_sync_token?: number;   // Last synced token
-    updated_at?: string;
+  user_id: string; // Primary key
+  currency: string; // e.g., 'EUR', 'USD'
+  language: string; // e.g., 'en', 'it'
+  theme: string; // 'light', 'dark', 'system'
+  accentColor: string; // Tailwind color name
+  start_of_week: string; // 'monday' or 'sunday'
+  default_view: string; // 'list' or 'grid'
+  include_investments_in_expense_totals: boolean;
+  include_group_expenses: boolean; // Include group expenses in totals
+  monthly_budget?: number; // Monthly spending limit (optional)
+  cached_month?: number; // Currently cached month
+  last_sync_token?: number; // Last synced token
+  updated_at?: string;
 }
 ```
 
@@ -115,18 +122,20 @@ Authentication hook for managing user sessions.
 
 ```typescript
 function useAuth(): {
-    user: User | null;
-    loading: boolean;
-    signOut: () => Promise<void>;
-}
+  user: User | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
+};
 ```
 
 **Returns**:
+
 - `user`: Current authenticated user or null
 - `loading`: True while checking authentication status
 - `signOut`: Function to sign out the current user
 
 **Example**:
+
 ```typescript
 const { user, loading, signOut } = useAuth();
 
@@ -144,38 +153,52 @@ Hook for managing transactions with CRUD operations.
 
 ```typescript
 function useTransactions(
-    limit?: number,
-    yearMonth?: string
+  limit?: number,
+  yearMonth?: string
 ): {
-    transactions: Transaction[] | undefined;
-    addTransaction: (transaction: Omit<Transaction, 'id' | 'sync_token' | 'pendingSync' | 'deleted_at'>) => Promise<void>;
-    updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id' | 'sync_token' | 'pendingSync'>>) => Promise<void>;
-    deleteTransaction: (id: string) => Promise<void>;
-}
+  transactions: Transaction[] | undefined;
+  addTransaction: (
+    transaction: Omit<
+      Transaction,
+      "id" | "sync_token" | "pendingSync" | "deleted_at"
+    >
+  ) => Promise<void>;
+  updateTransaction: (
+    id: string,
+    updates: Partial<Omit<Transaction, "id" | "sync_token" | "pendingSync">>
+  ) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
+};
 ```
 
 **Parameters**:
+
 - `limit` (optional): Maximum number of transactions to return
 - `yearMonth` (optional): Filter by year-month (YYYY-MM) or year (YYYY)
 
 **Returns**:
+
 - `transactions`: Array of transactions (reactive via useLiveQuery)
 - `addTransaction`: Create a new transaction
 - `updateTransaction`: Update an existing transaction
 - `deleteTransaction`: Soft delete a transaction
 
 **Example**:
+
 ```typescript
-const { transactions, addTransaction, deleteTransaction } = useTransactions(10, '2024-11');
+const { transactions, addTransaction, deleteTransaction } = useTransactions(
+  10,
+  "2024-11"
+);
 
 await addTransaction({
-    user_id: user.id,
-    category_id: 'category-uuid',
-    type: 'expense',
-    amount: 50.00,
-    date: '2024-11-25',
-    year_month: '2024-11',
-    description: 'Groceries'
+  user_id: user.id,
+  category_id: "category-uuid",
+  type: "expense",
+  amount: 50.0,
+  date: "2024-11-25",
+  year_month: "2024-11",
+  description: "Groceries",
 });
 ```
 
@@ -189,15 +212,24 @@ Hook for managing hierarchical categories.
 
 ```typescript
 function useCategories(): {
-    categories: Category[];
-    addCategory: (category: Omit<Category, 'id' | 'sync_token' | 'pendingSync' | 'deleted_at'>) => Promise<void>;
-    updateCategory: (id: string, updates: Partial<Omit<Category, 'id' | 'sync_token' | 'pendingSync'>>) => Promise<void>;
-    deleteCategory: (id: string) => Promise<void>;
-    reparentChildren: (oldParentId: string, newParentId: string | undefined) => Promise<void>;
-}
+  categories: Category[];
+  addCategory: (
+    category: Omit<Category, "id" | "sync_token" | "pendingSync" | "deleted_at">
+  ) => Promise<void>;
+  updateCategory: (
+    id: string,
+    updates: Partial<Omit<Category, "id" | "sync_token" | "pendingSync">>
+  ) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  reparentChildren: (
+    oldParentId: string,
+    newParentId: string | undefined
+  ) => Promise<void>;
+};
 ```
 
 **Returns**:
+
 - `categories`: Array of active categories (excludes soft-deleted)
 - `addCategory`: Create a new category
 - `updateCategory`: Update an existing category
@@ -205,20 +237,21 @@ function useCategories(): {
 - `reparentChildren`: Move children from one parent to another
 
 **Example**:
+
 ```typescript
 const { categories, addCategory, reparentChildren } = useCategories();
 
 await addCategory({
-    user_id: user.id,
-    name: 'Food',
-    icon: 'Utensils',
-    color: 'orange',
-    type: 'expense',
-    active: 1
+  user_id: user.id,
+  name: "Food",
+  icon: "Utensils",
+  color: "orange",
+  type: "expense",
+  active: 1,
 });
 
 // Move children when deleting a parent
-await reparentChildren('old-parent-id', 'new-parent-id');
+await reparentChildren("old-parent-id", "new-parent-id");
 ```
 
 ---
@@ -231,11 +264,16 @@ Hook for managing transaction contexts.
 
 ```typescript
 function useContexts(): {
-    contexts: Context[];
-    addContext: (context: Omit<Context, 'id' | 'sync_token' | 'pendingSync' | 'deleted_at'>) => Promise<void>;
-    updateContext: (id: string, updates: Partial<Omit<Context, 'id' | 'sync_token' | 'pendingSync'>>) => Promise<void>;
-    deleteContext: (id: string) => Promise<void>;
-}
+  contexts: Context[];
+  addContext: (
+    context: Omit<Context, "id" | "sync_token" | "pendingSync" | "deleted_at">
+  ) => Promise<void>;
+  updateContext: (
+    id: string,
+    updates: Partial<Omit<Context, "id" | "sync_token" | "pendingSync">>
+  ) => Promise<void>;
+  deleteContext: (id: string) => Promise<void>;
+};
 ```
 
 ---
@@ -248,30 +286,43 @@ Hook for managing recurring transactions with automatic generation.
 
 ```typescript
 function useRecurringTransactions(): {
-    recurringTransactions: RecurringTransaction[];
-    addRecurringTransaction: (rt: Omit<RecurringTransaction, 'id' | 'sync_token' | 'pendingSync' | 'deleted_at' | 'last_generated'>) => Promise<void>;
-    updateRecurringTransaction: (id: string, updates: Partial<Omit<RecurringTransaction, 'id' | 'sync_token' | 'pendingSync'>>) => Promise<void>;
-    deleteRecurringTransaction: (id: string) => Promise<void>;
-    generateTransactions: () => Promise<void>;
-}
+  recurringTransactions: RecurringTransaction[];
+  addRecurringTransaction: (
+    rt: Omit<
+      RecurringTransaction,
+      "id" | "sync_token" | "pendingSync" | "deleted_at" | "last_generated"
+    >
+  ) => Promise<void>;
+  updateRecurringTransaction: (
+    id: string,
+    updates: Partial<
+      Omit<RecurringTransaction, "id" | "sync_token" | "pendingSync">
+    >
+  ) => Promise<void>;
+  deleteRecurringTransaction: (id: string) => Promise<void>;
+  generateTransactions: () => Promise<void>;
+};
 ```
 
 **Returns**:
+
 - `generateTransactions`: Manually trigger transaction generation from recurring rules
 
 **Example**:
+
 ```typescript
-const { addRecurringTransaction, generateTransactions } = useRecurringTransactions();
+const { addRecurringTransaction, generateTransactions } =
+  useRecurringTransactions();
 
 await addRecurringTransaction({
-    user_id: user.id,
-    type: 'expense',
-    category_id: 'rent-category-id',
-    amount: 1200,
-    description: 'Monthly rent',
-    frequency: 'monthly',
-    start_date: '2024-01-01',
-    active: 1
+  user_id: user.id,
+  type: "expense",
+  category_id: "rent-category-id",
+  amount: 1200,
+  description: "Monthly rent",
+  frequency: "monthly",
+  start_date: "2024-01-01",
+  active: 1,
 });
 
 // Generate transactions from all active recurring rules
@@ -288,39 +339,57 @@ Hook for calculating financial statistics and analytics.
 
 ```typescript
 interface UseStatisticsParams {
-    selectedMonth?: string;  // YYYY-MM format
-    selectedYear?: string;   // YYYY format
+  selectedMonth?: string; // YYYY-MM format
+  selectedYear?: string; // YYYY format
 }
 
 function useStatistics(params?: UseStatisticsParams): {
-    // Monthly totals
-    totalIncome: number;
-    totalExpenses: number;
-    totalInvestments: number;
-    netBalance: number;
-    
-    // Category breakdowns
-    expensesByCategory: Array<{ category: string; amount: number; color: string; percent: number }>;
-    incomeByCategory: Array<{ category: string; amount: number; color: string; percent: number }>;
-    
-    // Trend data
-    monthlyTrends: Array<{ month: string; income: number; expenses: number; net: number }>;
-    
-    // And many more calculated statistics...
-}
+  // Monthly totals
+  totalIncome: number;
+  totalExpenses: number;
+  totalInvestments: number;
+  netBalance: number;
+
+  // Category breakdowns
+  expensesByCategory: Array<{
+    category: string;
+    amount: number;
+    color: string;
+    percent: number;
+  }>;
+  incomeByCategory: Array<{
+    category: string;
+    amount: number;
+    color: string;
+    percent: number;
+  }>;
+
+  // Trend data
+  monthlyTrends: Array<{
+    month: string;
+    income: number;
+    expenses: number;
+    net: number;
+  }>;
+
+  // And many more calculated statistics...
+};
 ```
 
 **Parameters**:
+
 - `selectedMonth` (optional): Filter statistics by specific month
 - `selectedYear` (optional): Filter statistics by specific year
 
 **Returns**: Comprehensive statistics object with totals, breakdowns, and trend data
 
 **Example**:
+
 ```typescript
-const { totalIncome, totalExpenses, netBalance, expensesByCategory } = useStatistics({
-    selectedMonth: '2024-11'
-});
+const { totalIncome, totalExpenses, netBalance, expensesByCategory } =
+  useStatistics({
+    selectedMonth: "2024-11",
+  });
 ```
 
 ---
@@ -333,19 +402,20 @@ Hook for managing user settings.
 
 ```typescript
 function useSettings(): {
-    settings: Setting | undefined;
-    updateSettings: (updates: Partial<Setting>) => Promise<void>;
-}
+  settings: Setting | undefined;
+  updateSettings: (updates: Partial<Setting>) => Promise<void>;
+};
 ```
 
 **Example**:
+
 ```typescript
 const { settings, updateSettings } = useSettings();
 
 await updateSettings({
-    theme: 'dark',
-    currency: 'USD',
-    language: 'it'
+  theme: "dark",
+  currency: "USD",
+  language: "it",
 });
 ```
 
@@ -359,18 +429,19 @@ Hook for manually triggering synchronization.
 
 ```typescript
 function useSync(): {
-    sync: () => Promise<void>;
-    isSyncing: boolean;
-}
+  sync: () => Promise<void>;
+  isSyncing: boolean;
+};
 ```
 
 **Example**:
+
 ```typescript
 const { sync, isSyncing } = useSync();
 
 <Button onClick={sync} disabled={isSyncing}>
-    {isSyncing ? 'Syncing...' : 'Sync Now'}
-</Button>
+  {isSyncing ? "Syncing..." : "Sync Now"}
+</Button>;
 ```
 
 ---
@@ -382,16 +453,129 @@ Hook that automatically syncs when the app comes back online.
 **Location**: [src/hooks/useOnlineSync.ts](file:///Users/ilariopc/Code/react/pwa-antigravity/src/hooks/useOnlineSync.ts)
 
 ```typescript
-function useOnlineSync(): void
+function useOnlineSync(): void;
 ```
 
 **Usage**: Call once in a top-level component (already used in `ProtectedRoute`)
 
 ```typescript
 function ProtectedRoute({ children }) {
-    useOnlineSync(); // Auto-sync when coming online
-    // ...
+  useOnlineSync(); // Auto-sync when coming online
+  // ...
 }
+```
+
+---
+
+### useRealtimeSync
+
+Hook for Supabase Realtime subscriptions - instant cross-device sync.
+
+**Location**: [src/hooks/useRealtimeSync.ts](file:///src/hooks/useRealtimeSync.ts)
+
+```typescript
+function useRealtimeSync(): {
+  isConnected: boolean;
+};
+```
+
+**Returns**:
+
+- `isConnected`: True if Realtime connection is active
+
+**Features**:
+
+- Automatically subscribes to all user data tables
+- Updates local IndexedDB when remote changes detected
+- Uses last-write-wins conflict resolution
+- Shows connection status in UI
+
+---
+
+### useAutoGenerate
+
+Hook that automatically generates recurring transactions on app load.
+
+**Location**: [src/hooks/useAutoGenerate.ts](file:///src/hooks/useAutoGenerate.ts)
+
+```typescript
+function useAutoGenerate(): void;
+```
+
+**Features**:
+
+- Runs once per app session
+- Checks all active recurring transactions
+- Generates missing transactions up to today
+- Shows toast notification with count and total amount
+- Triggers sync after generation
+
+**Usage**: Called automatically in `ProtectedRoute`
+
+---
+
+### useBudgetNotifications
+
+Hook that monitors budget usage and shows warnings.
+
+**Location**: [src/hooks/useBudgetNotifications.ts](file:///src/hooks/useBudgetNotifications.ts)
+
+```typescript
+function useBudgetNotifications(): void;
+```
+
+**Features**:
+
+- Monitors current month expenses vs monthly budget
+- Shows warning toast at 80% budget usage
+- Shows error toast when budget exceeded
+- Each notification shown once per session per month
+
+**Usage**: Called automatically in `ProtectedRoute`
+
+---
+
+### useGroups
+
+Hook for managing expense groups and members.
+
+**Location**: [src/hooks/useGroups.ts](file:///src/hooks/useGroups.ts)
+
+```typescript
+interface GroupWithMembers extends Group {
+  members: GroupMember[];
+}
+
+function useGroups(): {
+  groups: GroupWithMembers[];
+  addGroup: (
+    group: Omit<Group, "id" | "sync_token" | "pendingSync" | "deleted_at">
+  ) => Promise<string>;
+  updateGroup: (
+    id: string,
+    updates: Partial<Omit<Group, "id" | "sync_token" | "pendingSync">>
+  ) => Promise<void>;
+  deleteGroup: (id: string) => Promise<void>;
+  addMember: (groupId: string, userId: string, share: number) => Promise<void>;
+  updateMemberShare: (memberId: string, share: number) => Promise<void>;
+  removeMember: (memberId: string) => Promise<void>;
+};
+```
+
+**Example**:
+
+```typescript
+const { groups, addGroup, addMember } = useGroups();
+
+// Create a group
+const groupId = await addGroup({
+  name: "Roommates",
+  description: "Shared apartment expenses",
+  created_by: user.id,
+});
+
+// Add a member with 50% share
+await addMember(groupId, "other-user-id", 50);
 ```
 
 ---
@@ -403,12 +587,13 @@ Hook for detecting mobile viewport.
 **Location**: [src/hooks/useMobile.ts](file:///Users/ilariopc/Code/react/pwa-antigravity/src/hooks/useMobile.ts)
 
 ```typescript
-function useMobile(): boolean
+function useMobile(): boolean;
 ```
 
 **Returns**: `true` if viewport width < 768px
 
 **Example**:
+
 ```typescript
 const isMobile = useMobile();
 
@@ -424,16 +609,17 @@ return isMobile ? <MobileNav /> : <DesktopNav />;
 #### getIconComponent
 
 ```typescript
-function getIconComponent(iconName: string): LucideIcon | null
+function getIconComponent(iconName: string): LucideIcon | null;
 ```
 
 Maps icon name string to Lucide React icon component.
 
 **Example**:
+
 ```typescript
-const IconComponent = getIconComponent('Home');
+const IconComponent = getIconComponent("Home");
 if (IconComponent) {
-    return <IconComponent className="h-4 w-4" />;
+  return <IconComponent className="h-4 w-4" />;
 }
 ```
 
@@ -441,9 +627,9 @@ if (IconComponent) {
 
 ```typescript
 const AVAILABLE_ICONS: IconItem[] = [
-    { name: 'Home', icon: Home },
-    { name: 'ShoppingCart', icon: ShoppingCart },
-    // ... 40+ icons
+  { name: "Home", icon: Home },
+  { name: "ShoppingCart", icon: ShoppingCart },
+  // ... 40+ icons
 ];
 ```
 
@@ -458,27 +644,33 @@ Array of all available icons for category selection.
 #### applyThemeColor
 
 ```typescript
-function applyThemeColor(color: string, isDark: boolean): void
+function applyThemeColor(color: string, isDark: boolean): void;
 ```
 
 Applies theme color CSS variables to the document root.
 
 **Parameters**:
+
 - `color`: Color name (slate, blue, violet, green, orange, rose, zinc)
 - `isDark`: Whether dark mode is active
 
 **Example**:
+
 ```typescript
-applyThemeColor('blue', true); // Apply blue theme in dark mode
+applyThemeColor("blue", true); // Apply blue theme in dark mode
 ```
 
 #### THEME_COLORS
 
 ```typescript
 const THEME_COLORS: Record<string, ThemeColors> = {
-    slate: { /* ... */ },
-    blue: { /* ... */ },
-    // ... 7 color themes
+  slate: {
+    /* ... */
+  },
+  blue: {
+    /* ... */
+  },
+  // ... 7 color themes
 };
 ```
 
@@ -494,7 +686,7 @@ Available theme color configurations.
 
 ```typescript
 class SyncManager {
-    async sync(): Promise<void>
+  async sync(): Promise<void>;
 }
 
 export const syncManager: SyncManager;
@@ -517,13 +709,14 @@ export const db: AppDatabase;
 Dexie database instance. Direct access for advanced queries.
 
 **Example**:
+
 ```typescript
-import { db } from '@/lib/db';
+import { db } from "@/lib/db";
 
 const transactions = await db.transactions
-    .where('year_month')
-    .equals('2024-11')
-    .toArray();
+  .where("year_month")
+  .equals("2024-11")
+  .toArray();
 ```
 
 ---
@@ -541,12 +734,13 @@ export const supabase: SupabaseClient;
 Supabase client instance for authentication and backend operations.
 
 **Example**:
+
 ```typescript
-import { supabase } from '@/lib/supabase';
+import { supabase } from "@/lib/supabase";
 
 const { data, error } = await supabase.auth.signInWithPassword({
-    email: 'user@example.com',
-    password: 'password'
+  email: "user@example.com",
+  password: "password",
 });
 ```
 
@@ -558,9 +752,9 @@ const { data, error } = await supabase.auth.signInWithPassword({
 
 ```typescript
 interface CategorySelectorProps {
-    type: 'income' | 'expense' | 'investment';
-    value: string;
-    onValueChange: (value: string) => void;
+  type: "income" | "expense" | "investment";
+  value: string;
+  onValueChange: (value: string) => void;
 }
 ```
 
@@ -574,9 +768,9 @@ Complex component for selecting categories with breadcrumb navigation.
 
 ```typescript
 interface TransactionListProps {
-    transactions: Transaction[];
-    onEdit?: (transaction: Transaction) => void;
-    onDelete?: (id: string) => void;
+  transactions: Transaction[];
+  onEdit?: (transaction: Transaction) => void;
+  onDelete?: (id: string) => void;
 }
 ```
 
@@ -590,11 +784,11 @@ Displays a list of transactions with edit/delete actions.
 
 ```typescript
 interface DeleteConfirmDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    onConfirm: () => void;
-    title?: string;
-    description?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  title?: string;
+  description?: string;
 }
 ```
 
@@ -610,10 +804,10 @@ Common TypeScript patterns used throughout the codebase:
 
 ```typescript
 // For creating new entities (exclude generated fields)
-Omit<Transaction, 'id' | 'sync_token' | 'pendingSync' | 'deleted_at'>
+Omit<Transaction, "id" | "sync_token" | "pendingSync" | "deleted_at">;
 
 // For updating entities (exclude immutable fields)
-Partial<Omit<Transaction, 'id' | 'sync_token' | 'pendingSync'>>
+Partial<Omit<Transaction, "id" | "sync_token" | "pendingSync">>;
 ```
 
 ---
@@ -623,30 +817,33 @@ Partial<Omit<Transaction, 'id' | 'sync_token' | 'pendingSync'>>
 ### Using Hooks
 
 1. **Always use hooks at component top level**
+
    ```typescript
    function MyComponent() {
-       const { transactions } = useTransactions(); // ✅ Correct
-       
-       if (condition) {
-           const { categories } = useCategories(); // ❌ Wrong
-       }
+     const { transactions } = useTransactions(); // ✅ Correct
+
+     if (condition) {
+       const { categories } = useCategories(); // ❌ Wrong
+     }
    }
    ```
 
 2. **Handle undefined states**
+
    ```typescript
    const { transactions } = useTransactions();
-   
+
    if (!transactions) return <Loading />;
-   
+
    return <TransactionList transactions={transactions} />;
    ```
 
 3. **Use appropriate filters**
+
    ```typescript
    // Filter by month for better performance
-   const { transactions } = useTransactions(undefined, '2024-11');
-   
+   const { transactions } = useTransactions(undefined, "2024-11");
+
    // Instead of fetching all and filtering in JS
    const { transactions } = useTransactions();
    const filtered = transactions?.filter(/* ... */); // Less efficient
@@ -658,7 +855,7 @@ All hooks handle errors internally and log to console. For production, consider 
 
 ```typescript
 <ErrorBoundary fallback={<ErrorPage />}>
-    <App />
+  <App />
 </ErrorBoundary>
 ```
 

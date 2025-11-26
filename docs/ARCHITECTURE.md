@@ -27,12 +27,12 @@ graph TB
     Dexie[Dexie IndexedDB]
     Sync[Sync Manager]
     Supabase[Supabase Backend]
-    
+
     UI --> Hooks
     Hooks --> Dexie
     Dexie --> Sync
     Sync --> Supabase
-    
+
     style UI fill:#61dafb
     style Dexie fill:#4CAF50
     style Supabase fill:#3ECF8E
@@ -74,16 +74,16 @@ sequenceDiagram
     participant Dexie
     participant Sync
     participant Supabase
-    
+
     User->>UI: Perform action
     UI->>Hook: Call hook method
     Hook->>Dexie: Write to IndexedDB
     Dexie-->>Hook: Success
     Hook-->>UI: Update complete
     UI-->>User: Instant feedback
-    
+
     Note over Dexie: Mark as pendingSync
-    
+
     Sync->>Dexie: Check pending items
     Dexie-->>Sync: Return pending
     Sync->>Supabase: Push changes
@@ -99,14 +99,14 @@ sequenceDiagram
     participant UI
     participant Hook
     participant Dexie
-    
+
     User->>UI: View data
     UI->>Hook: useLiveQuery
     Hook->>Dexie: Query IndexedDB
     Dexie-->>Hook: Return data
     Hook-->>UI: Reactive update
     UI-->>User: Display data
-    
+
     Note over Hook,Dexie: Real-time updates via Dexie observables
 ```
 
@@ -118,16 +118,16 @@ sequenceDiagram
     participant Sync
     participant Dexie
     participant Supabase
-    
+
     App->>Sync: Trigger sync
-    
+
     Note over Sync: Phase 1: Push
     Sync->>Dexie: Get pendingSync items
     Dexie-->>Sync: Return items
     Sync->>Supabase: Upsert items
     Supabase-->>Sync: Success
     Sync->>Dexie: Clear pendingSync
-    
+
     Note over Sync: Phase 2: Pull
     Sync->>Dexie: Get last_sync_token
     Dexie-->>Sync: Return token
@@ -144,100 +144,143 @@ sequenceDiagram
 The local database uses Dexie.js as a wrapper around IndexedDB.
 
 #### Transactions Table
+
 ```typescript
 interface Transaction {
-    id: string;              // UUID
-    user_id: string;         // User identifier
-    category_id: string;     // Required category reference
-    context_id?: string;     // Optional context reference
-    type: 'income' | 'expense' | 'investment';
-    amount: number;          // Transaction amount
-    date: string;            // ISO date string
-    year_month: string;      // Computed: YYYY-MM for indexing
-    description: string;     // Transaction description
-    deleted_at?: string;     // Soft delete timestamp
-    pendingSync?: number;    // 1 if needs sync, 0 if synced
-    sync_token?: number;     // Server sync token
+  id: string; // UUID
+  user_id: string; // User identifier
+  category_id: string; // Required category reference
+  context_id?: string; // Optional context reference
+  type: "income" | "expense" | "investment";
+  amount: number; // Transaction amount
+  date: string; // ISO date string
+  year_month: string; // Computed: YYYY-MM for indexing
+  description: string; // Transaction description
+  deleted_at?: string; // Soft delete timestamp
+  pendingSync?: number; // 1 if needs sync, 0 if synced
+  sync_token?: number; // Server sync token
 }
 
 // Indexes: id, user_id, category_id, context_id, type, date, year_month, pendingSync, deleted_at
 ```
 
 #### Categories Table
+
 ```typescript
 interface Category {
-    id: string;
-    user_id: string;
-    name: string;
-    icon: string;            // Lucide icon name
-    color: string;           // Tailwind color name
-    type: 'income' | 'expense' | 'investment';
-    parent_id?: string;      // For hierarchical categories
-    active: number;          // 1 or 0 (boolean)
-    deleted_at?: string;
-    pendingSync?: number;
-    sync_token?: number;
+  id: string;
+  user_id: string;
+  name: string;
+  icon: string; // Lucide icon name
+  color: string; // Tailwind color name
+  type: "income" | "expense" | "investment";
+  parent_id?: string; // For hierarchical categories
+  active: number; // 1 or 0 (boolean)
+  deleted_at?: string;
+  pendingSync?: number;
+  sync_token?: number;
 }
 
 // Indexes: id, user_id, type, pendingSync, deleted_at
 ```
 
 #### Contexts Table
+
 ```typescript
 interface Context {
-    id: string;
-    user_id: string;
-    name: string;
-    description?: string;
-    active: number;
-    deleted_at?: string;
-    pendingSync?: number;
-    sync_token?: number;
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  active: number;
+  deleted_at?: string;
+  pendingSync?: number;
+  sync_token?: number;
 }
 
 // Indexes: id, user_id, pendingSync, deleted_at
 ```
 
 #### Recurring Transactions Table
+
 ```typescript
 interface RecurringTransaction {
-    id: string;
-    user_id: string;
-    type: 'income' | 'expense' | 'investment';
-    category_id: string;
-    context_id?: string;
-    amount: number;
-    description: string;
-    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
-    start_date: string;
-    end_date?: string;
-    active: number;
-    last_generated?: string; // Last time transactions were generated
-    deleted_at?: string;
-    pendingSync?: number;
-    sync_token?: number;
+  id: string;
+  user_id: string;
+  type: "income" | "expense" | "investment";
+  category_id: string;
+  context_id?: string;
+  amount: number;
+  description: string;
+  frequency: "daily" | "weekly" | "monthly" | "yearly";
+  start_date: string;
+  end_date?: string;
+  active: number;
+  last_generated?: string; // Last time transactions were generated
+  deleted_at?: string;
+  pendingSync?: number;
+  sync_token?: number;
 }
 
 // Indexes: id, user_id, type, frequency, pendingSync, deleted_at
 ```
 
 #### User Settings Table
+
 ```typescript
 interface Setting {
-    user_id: string;         // Primary key
-    currency: string;        // e.g., 'EUR', 'USD'
-    language: string;        // e.g., 'en', 'it'
-    theme: string;           // 'light', 'dark', 'system'
-    accentColor: string;     // Tailwind color name
-    start_of_week: string;   // 'monday' or 'sunday'
-    default_view: string;    // 'list' or 'grid'
-    include_investments_in_expense_totals: boolean;
-    cached_month?: number;   // Currently cached month for statistics
-    last_sync_token?: number;// Last synced token
-    updated_at?: string;
+  user_id: string; // Primary key
+  currency: string; // e.g., 'EUR', 'USD'
+  language: string; // e.g., 'en', 'it'
+  theme: string; // 'light', 'dark', 'system'
+  accentColor: string; // Tailwind color name
+  start_of_week: string; // 'monday' or 'sunday'
+  default_view: string; // 'list' or 'grid'
+  include_investments_in_expense_totals: boolean;
+  include_group_expenses: boolean; // Include group expenses in personal totals
+  monthly_budget?: number; // Monthly spending limit
+  cached_month?: number; // Currently cached month for statistics
+  last_sync_token?: number; // Last synced token
+  updated_at?: string;
 }
 
 // Primary key: user_id
+```
+
+#### Groups Table
+
+```typescript
+interface Group {
+  id: string; // UUID
+  name: string; // Group name
+  description?: string; // Optional description
+  created_by: string; // User who created the group
+  deleted_at?: string; // Soft delete timestamp
+  pendingSync?: number;
+  sync_token?: number;
+  updated_at?: string;
+  created_at?: string;
+}
+
+// Indexes: id, created_by, deleted_at
+```
+
+#### Group Members Table
+
+```typescript
+interface GroupMember {
+  id: string; // UUID
+  group_id: string; // Reference to group
+  user_id: string; // Reference to user
+  share: number; // 0-100 percentage
+  joined_at?: string;
+  removed_at?: string; // Soft removal timestamp
+  pendingSync?: number;
+  sync_token?: number;
+  updated_at?: string;
+}
+
+// Indexes: id, group_id, user_id
 ```
 
 ### Supabase Schema (PostgreSQL)
@@ -260,14 +303,14 @@ erDiagram
     USERS ||--o{ CONTEXTS : creates
     USERS ||--o{ RECURRING_TRANSACTIONS : creates
     USERS ||--|| USER_SETTINGS : has
-    
+
     CATEGORIES ||--o{ TRANSACTIONS : categorizes
     CATEGORIES ||--o{ CATEGORIES : "parent of"
     CATEGORIES ||--o{ RECURRING_TRANSACTIONS : categorizes
-    
+
     CONTEXTS ||--o{ TRANSACTIONS : tags
     CONTEXTS ||--o{ RECURRING_TRANSACTIONS : tags
-    
+
     TRANSACTIONS {
         uuid id PK
         uuid user_id FK
@@ -278,7 +321,7 @@ erDiagram
         date date
         string description
     }
-    
+
     CATEGORIES {
         uuid id PK
         uuid user_id FK
@@ -310,23 +353,23 @@ Located in [src/lib/sync.ts](file:///Users/ilariopc/Code/react/pwa-antigravity/s
 
 ```typescript
 class SyncManager {
-    async sync() {
-        await this.pushPending(userId);  // Push local changes
-        await this.pullDelta(userId);    // Pull server changes
-    }
-    
-    private async pushPending(userId: string) {
-        // Find all items with pendingSync = 1
-        // Upsert to Supabase
-        // Clear pendingSync flag on success
-    }
-    
-    private async pullDelta(userId: string) {
-        // Get last_sync_token from settings
-        // Query Supabase for sync_token > last_sync_token
-        // Update local IndexedDB
-        // Update last_sync_token
-    }
+  async sync() {
+    await this.pushPending(userId); // Push local changes
+    await this.pullDelta(userId); // Pull server changes
+  }
+
+  private async pushPending(userId: string) {
+    // Find all items with pendingSync = 1
+    // Upsert to Supabase
+    // Clear pendingSync flag on success
+  }
+
+  private async pullDelta(userId: string) {
+    // Get last_sync_token from settings
+    // Query Supabase for sync_token > last_sync_token
+    // Update local IndexedDB
+    // Update last_sync_token
+  }
 }
 ```
 
@@ -369,17 +412,20 @@ App
 ### Key Components
 
 #### AppShell
+
 - Provides layout structure
 - Renders navigation (mobile/desktop)
 - Wraps all authenticated pages
 
 #### CategorySelector
+
 - Complex component for hierarchical category selection
 - Desktop: Breadcrumb navigation in popover
 - Mobile: Sheet with nested navigation
 - Filters by transaction type
 
 #### TransactionList
+
 - Displays transactions with virtual scrolling
 - Shows sync status indicators
 - Supports filtering and sorting
@@ -401,11 +447,12 @@ The app uses **Dexie's `useLiveQuery`** for reactive state management:
 
 ```typescript
 // Automatically re-renders when data changes
-const transactions = useLiveQuery(
-    () => db.transactions
-        .where('user_id').equals(userId)
-        .and(t => !t.deleted_at)
-        .toArray()
+const transactions = useLiveQuery(() =>
+  db.transactions
+    .where("user_id")
+    .equals(userId)
+    .and((t) => !t.deleted_at)
+    .toArray()
 );
 ```
 
@@ -434,33 +481,33 @@ Configured via [vite-plugin-pwa](file:///Users/ilariopc/Code/react/pwa-antigravi
 
 ```typescript
 VitePWA({
-    registerType: 'autoUpdate',
-    workbox: {
-        runtimeCaching: [
-            {
-                // Cache documents, scripts, styles
-                urlPattern: ({ request }) => 
-                    request.destination === 'document' || 
-                    request.destination === 'script' || 
-                    request.destination === 'style',
-                handler: 'NetworkFirst',  // Try network, fallback to cache
-                options: {
-                    cacheName: 'static-resources',
-                    expiration: { maxAgeSeconds: 7 * 24 * 60 * 60 }
-                }
-            },
-            {
-                // Cache images
-                urlPattern: ({ request }) => request.destination === 'image',
-                handler: 'CacheFirst',  // Use cache, update in background
-                options: {
-                    cacheName: 'images',
-                    expiration: { maxAgeSeconds: 30 * 24 * 60 * 60 }
-                }
-            }
-        ]
-    }
-})
+  registerType: "autoUpdate",
+  workbox: {
+    runtimeCaching: [
+      {
+        // Cache documents, scripts, styles
+        urlPattern: ({ request }) =>
+          request.destination === "document" ||
+          request.destination === "script" ||
+          request.destination === "style",
+        handler: "NetworkFirst", // Try network, fallback to cache
+        options: {
+          cacheName: "static-resources",
+          expiration: { maxAgeSeconds: 7 * 24 * 60 * 60 },
+        },
+      },
+      {
+        // Cache images
+        urlPattern: ({ request }) => request.destination === "image",
+        handler: "CacheFirst", // Use cache, update in background
+        options: {
+          cacheName: "images",
+          expiration: { maxAgeSeconds: 30 * 24 * 60 * 60 },
+        },
+      },
+    ],
+  },
+});
 ```
 
 ### Caching Strategies
@@ -471,6 +518,7 @@ VitePWA({
 ### Manifest
 
 PWA manifest defines:
+
 - App name and icons
 - Display mode: `standalone` (no browser UI)
 - Theme colors
@@ -481,9 +529,12 @@ PWA manifest defines:
 Special meta tags in [index.html](file:///Users/ilariopc/Code/react/pwa-antigravity/index.html):
 
 ```html
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+/>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 ```
 
 ## Internationalization
@@ -494,15 +545,15 @@ Using [i18next](file:///Users/ilariopc/Code/react/pwa-antigravity/src/i18n.ts):
 
 ```typescript
 i18n
-    .use(LanguageDetector)      // Auto-detect browser language
-    .use(initReactI18next)      // React integration
-    .init({
-        resources: {
-            en: { translation: enTranslation },
-            it: { translation: itTranslation }
-        },
-        fallbackLng: 'en'
-    });
+  .use(LanguageDetector) // Auto-detect browser language
+  .use(initReactI18next) // React integration
+  .init({
+    resources: {
+      en: { translation: enTranslation },
+      it: { translation: itTranslation },
+    },
+    fallbackLng: "en",
+  });
 ```
 
 ### Translation Files
@@ -520,17 +571,18 @@ locales/
 ### Usage in Components
 
 ```typescript
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 
 function MyComponent() {
-    const { t } = useTranslation();
-    return <h1>{t('dashboard.title')}</h1>;
+  const { t } = useTranslation();
+  return <h1>{t("dashboard.title")}</h1>;
 }
 ```
 
 ### Language Switching
 
 User can change language in Settings, which updates:
+
 1. `i18n.changeLanguage()`
 2. Local storage (persisted)
 3. User settings in database
@@ -540,6 +592,7 @@ User can change language in Settings, which updates:
 ### IndexedDB Indexing
 
 Strategic indexes on frequently queried fields:
+
 - `year_month` for monthly transaction queries
 - `type` for filtering by transaction type
 - `pendingSync` for sync operations
@@ -555,8 +608,8 @@ Statistics calculations use `useMemo` to avoid recalculation:
 
 ```typescript
 const monthlyTotals = useMemo(() => {
-    // Expensive calculation
-    return calculateTotals(transactions);
+  // Expensive calculation
+  return calculateTotals(transactions);
 }, [transactions]);
 ```
 
