@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
+import { useContexts } from "@/hooks/useContexts";
 import { useGroups } from "@/hooks/useGroups";
 import { CategorySelector } from "@/components/CategorySelector";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Plus, Search, X, ChevronDown, Users } from "lucide-react";
+import { Plus, Search, X, ChevronDown, Users, Tag } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { TransactionList } from "@/components/TransactionList";
@@ -57,6 +58,7 @@ export function TransactionsPage() {
 
   const { t } = useTranslation();
   const { categories } = useCategories();
+  const { contexts } = useContexts();
   const { groups } = useGroups();
   const { user } = useAuth();
 
@@ -107,12 +109,14 @@ export function TransactionsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [groupSectionOpen, setGroupSectionOpen] = useState(false);
+  const [contextSectionOpen, setContextSectionOpen] = useState(false);
   const [formData, setFormData] = useState({
     amount: "",
     description: "",
     type: "expense" as "income" | "expense" | "investment",
     category_id: "",
     date: new Date().toISOString().split("T")[0],
+    context_id: "" as string | null,
     group_id: "" as string | null,
     paid_by_user_id: "" as string | null,
   });
@@ -126,6 +130,7 @@ export function TransactionsPage() {
     categoryId: "all",
     type: "all",
     groupFilter: "all" as "all" | "personal" | "group" | string, // 'all', 'personal', 'group', or specific group id
+    contextFilter: "all" as "all" | "none" | string, // 'all', 'none' (no context), or specific context id
   });
 
   // Reset category when type changes (only when creating new transaction)
@@ -143,8 +148,11 @@ export function TransactionsPage() {
       return;
     }
 
-    const groupId = formData.group_id || null;
-    const paidByUserId = groupId ? formData.paid_by_user_id || user.id : null;
+    const groupId = formData.group_id || undefined;
+    const paidByUserId = groupId
+      ? formData.paid_by_user_id || user.id
+      : undefined;
+    const contextId = formData.context_id || undefined;
 
     if (editingId) {
       await updateTransaction(editingId, {
@@ -154,6 +162,7 @@ export function TransactionsPage() {
         category_id: formData.category_id,
         date: formData.date,
         year_month: formData.date.substring(0, 7),
+        context_id: contextId,
         group_id: groupId,
         paid_by_user_id: paidByUserId,
       });
@@ -166,6 +175,7 @@ export function TransactionsPage() {
         category_id: formData.category_id,
         date: formData.date,
         year_month: formData.date.substring(0, 7),
+        context_id: contextId,
         group_id: groupId,
         paid_by_user_id: paidByUserId,
       });
@@ -173,12 +183,14 @@ export function TransactionsPage() {
     setIsOpen(false);
     setEditingId(null);
     setGroupSectionOpen(false);
+    setContextSectionOpen(false);
     setFormData({
       amount: "",
       description: "",
       category_id: "",
       type: "expense",
       date: new Date().toISOString().split("T")[0],
+      context_id: "",
       group_id: "",
       paid_by_user_id: "",
     });
@@ -192,11 +204,13 @@ export function TransactionsPage() {
       type: transaction.type,
       category_id: transaction.category_id || "",
       date: transaction.date,
+      context_id: transaction.context_id || "",
       group_id: transaction.group_id || "",
       paid_by_user_id: transaction.paid_by_user_id || "",
     });
-    // Open the group section if transaction has a group
+    // Open the sections if transaction has data
     setGroupSectionOpen(!!transaction.group_id);
+    setContextSectionOpen(!!transaction.context_id);
     setIsOpen(true);
   };
 
@@ -208,10 +222,12 @@ export function TransactionsPage() {
       category_id: "",
       type: "expense",
       date: new Date().toISOString().split("T")[0],
+      context_id: "",
       group_id: "",
       paid_by_user_id: "",
     });
     setGroupSectionOpen(false);
+    setContextSectionOpen(false);
     setIsOpen(true);
   };
 
@@ -238,6 +254,7 @@ export function TransactionsPage() {
       categoryId: "all",
       type: "all",
       groupFilter: "all",
+      contextFilter: "all",
     });
   };
 
@@ -308,6 +325,16 @@ export function TransactionsPage() {
           }
         }
 
+        // Context Filter
+        if (filters.contextFilter !== "all") {
+          if (filters.contextFilter === "none") {
+            if (transaction.context_id) return false;
+          } else {
+            // Specific context id
+            if (transaction.context_id !== filters.contextFilter) return false;
+          }
+        }
+
         return true;
       }) || []
     );
@@ -361,6 +388,31 @@ export function TransactionsPage() {
               {groups.map((group) => (
                 <SelectItem key={group.id} value={group.id}>
                   {group.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {contexts.length > 0 && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">{t("context")}</label>
+          <Select
+            value={filters.contextFilter}
+            onValueChange={(value) =>
+              setFilters({ ...filters, contextFilter: value })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={t("all")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("all")}</SelectItem>
+              <SelectItem value="none">{t("no_context")}</SelectItem>
+              {contexts.map((ctx) => (
+                <SelectItem key={ctx.id} value={ctx.id}>
+                  {ctx.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -732,6 +784,68 @@ export function TransactionsPage() {
                   </Collapsible>
                 )}
 
+                {/* Collapsible Context Section */}
+                {contexts.length > 0 && (
+                  <Collapsible
+                    open={contextSectionOpen}
+                    onOpenChange={setContextSectionOpen}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="w-full flex items-center justify-between p-2 h-auto"
+                      >
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Tag className="h-4 w-4" />
+                          <span className="text-sm font-medium">
+                            {formData.context_id
+                              ? contexts.find(
+                                  (c) => c.id === formData.context_id
+                                )?.name
+                              : t("context")}
+                          </span>
+                        </div>
+                        <ChevronDown
+                          className={`h-4 w-4 text-muted-foreground transition-transform ${
+                            contextSectionOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-3 pt-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          {t("context")}
+                        </label>
+                        <Select
+                          value={formData.context_id || "none"}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              context_id: value === "none" ? "" : value,
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={t("select_context")} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">
+                              {t("no_context")}
+                            </SelectItem>
+                            {contexts.map((ctx) => (
+                              <SelectItem key={ctx.id} value={ctx.id}>
+                                {ctx.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+
                 <Button type="submit" className="w-full">
                   {t("save")}
                 </Button>
@@ -780,7 +894,8 @@ export function TransactionsPage() {
         filters.maxAmount ||
         filters.categoryId !== "all" ||
         filters.type !== "all" ||
-        filters.groupFilter !== "all") && (
+        filters.groupFilter !== "all" ||
+        filters.contextFilter !== "all") && (
         <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
           <span>{t("active_filters")}:</span>
           {filters.text && (
@@ -803,6 +918,14 @@ export function TransactionsPage() {
                   filters.groupFilter}
             </span>
           )}
+          {filters.contextFilter !== "all" && (
+            <span className="bg-muted px-2 py-1 rounded-md">
+              {filters.contextFilter === "none"
+                ? t("no_context")
+                : contexts.find((c) => c.id === filters.contextFilter)?.name ||
+                  filters.contextFilter}
+            </span>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -819,6 +942,7 @@ export function TransactionsPage() {
       <TransactionList
         transactions={filteredTransactions}
         categories={categories}
+        contexts={contexts}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
         isLoading={transactions === undefined}
