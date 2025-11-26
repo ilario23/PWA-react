@@ -112,7 +112,7 @@ describe('useAuth', () => {
 
         // Simulate sign in
         if (authCallback) {
-            authCallback('SIGNED_IN', { user: mockUser });
+            (authCallback as any)('SIGNED_IN', { user: mockUser });
         }
 
         await waitFor(() => {

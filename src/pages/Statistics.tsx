@@ -350,7 +350,7 @@ export function StatisticsPage() {
                                                     position="right"
                                                     className="fill-foreground font-bold"
                                                     fontSize={12}
-                                                    formatter={(value: number) => `€${value.toFixed(0)}`}
+                                                    formatter={(value: any) => `€${Number(value).toFixed(0)}`}
                                                 />
                                             </Bar>
                                         </BarChart>
@@ -572,7 +572,7 @@ export function StatisticsPage() {
                                                     position="right"
                                                     className="fill-foreground font-bold"
                                                     fontSize={12}
-                                                    formatter={(value: number) => `€${value.toFixed(0)}`}
+                                                    formatter={(value: any) => `€${Number(value).toFixed(0)}`}
                                                 />
                                             </Bar>
                                         </BarChart>

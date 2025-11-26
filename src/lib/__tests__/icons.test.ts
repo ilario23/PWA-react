@@ -1,5 +1,5 @@
 import { getIconComponent, AVAILABLE_ICONS } from '../icons';
-import { Home, ShoppingCart, Car } from 'lucide-react';
+import { Home } from 'lucide-react';
 
 describe('icons', () => {
     describe('AVAILABLE_ICONS', () => {
