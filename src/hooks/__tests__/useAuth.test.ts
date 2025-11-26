@@ -1,146 +1,148 @@
-import { renderHook, waitFor } from '@testing-library/react';
-import { useAuth } from '../useAuth';
-import { supabase } from '../../lib/supabase';
-import { db } from '../../lib/db';
+import { renderHook, waitFor } from "@testing-library/react";
+import { useAuth } from "../useAuth";
+import { supabase } from "../../lib/supabase";
+import { db } from "../../lib/db";
 
 // Mock Supabase
-jest.mock('../../lib/supabase', () => ({
-    supabase: {
-        auth: {
-            getSession: jest.fn(),
-            onAuthStateChange: jest.fn(),
-            signOut: jest.fn(),
-        },
+jest.mock("../../lib/supabase", () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn(),
+      onAuthStateChange: jest.fn(),
+      signOut: jest.fn(),
     },
+  },
 }));
 
 // Mock DB
-jest.mock('../../lib/db', () => ({
-    db: {
-        clearLocalCache: jest.fn().mockResolvedValue(undefined),
-    },
+jest.mock("../../lib/db", () => ({
+  db: {
+    clearLocalCache: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 
-describe('useAuth', () => {
-    const mockUser = {
-        id: 'user-123',
-        email: 'test@example.com',
-        aud: 'authenticated',
-        role: 'authenticated',
-        created_at: '2024-01-01',
-    };
+describe("useAuth", () => {
+  const mockUser = {
+    id: "user-123",
+    email: "test@example.com",
+    aud: "authenticated",
+    role: "authenticated",
+    created_at: "2024-01-01",
+  };
 
-    beforeEach(() => {
-        jest.clearAllMocks();
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should start with loading state", () => {
+    (supabase.auth.getSession as jest.Mock).mockResolvedValue({
+      data: { session: null },
+    });
+    (supabase.auth.onAuthStateChange as jest.Mock).mockReturnValue({
+      data: { subscription: { unsubscribe: jest.fn() } },
     });
 
-    it('should start with loading state', () => {
-        (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-            data: { session: null },
-        });
-        (supabase.auth.onAuthStateChange as jest.Mock).mockReturnValue({
-            data: { subscription: { unsubscribe: jest.fn() } },
-        });
+    const { result } = renderHook(() => useAuth());
 
-        const { result } = renderHook(() => useAuth());
+    expect(result.current.loading).toBe(true);
+    expect(result.current.user).toBeNull();
+  });
 
-        expect(result.current.loading).toBe(true);
-        expect(result.current.user).toBeNull();
+  it("should load user session", async () => {
+    (supabase.auth.getSession as jest.Mock).mockResolvedValue({
+      data: { session: { user: mockUser } },
+    });
+    (supabase.auth.onAuthStateChange as jest.Mock).mockReturnValue({
+      data: { subscription: { unsubscribe: jest.fn() } },
     });
 
-    it('should load user session', async () => {
-        (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-            data: { session: { user: mockUser } },
-        });
-        (supabase.auth.onAuthStateChange as jest.Mock).mockReturnValue({
-            data: { subscription: { unsubscribe: jest.fn() } },
-        });
+    const { result } = renderHook(() => useAuth());
 
-        const { result } = renderHook(() => useAuth());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.user).toEqual(mockUser);
+    });
+  });
 
-        await waitFor(() => {
-            expect(result.current.loading).toBe(false);
-            expect(result.current.user).toEqual(mockUser);
-        });
+  it("should handle no session", async () => {
+    (supabase.auth.getSession as jest.Mock).mockResolvedValue({
+      data: { session: null },
+    });
+    (supabase.auth.onAuthStateChange as jest.Mock).mockReturnValue({
+      data: { subscription: { unsubscribe: jest.fn() } },
     });
 
-    it('should handle no session', async () => {
-        (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-            data: { session: null },
-        });
-        (supabase.auth.onAuthStateChange as jest.Mock).mockReturnValue({
-            data: { subscription: { unsubscribe: jest.fn() } },
-        });
+    const { result } = renderHook(() => useAuth());
 
-        const { result } = renderHook(() => useAuth());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.user).toBeNull();
+    });
+  });
 
-        await waitFor(() => {
-            expect(result.current.loading).toBe(false);
-            expect(result.current.user).toBeNull();
-        });
+  it("should provide signOut function", async () => {
+    (supabase.auth.getSession as jest.Mock).mockResolvedValue({
+      data: { session: { user: mockUser } },
+    });
+    (supabase.auth.onAuthStateChange as jest.Mock).mockReturnValue({
+      data: { subscription: { unsubscribe: jest.fn() } },
+    });
+    (supabase.auth.signOut as jest.Mock).mockResolvedValue({ error: null });
+
+    const { result } = renderHook(() => useAuth());
+
+    await waitFor(() => {
+      expect(result.current.user).toEqual(mockUser);
     });
 
-    it('should provide signOut function', async () => {
-        (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-            data: { session: { user: mockUser } },
-        });
-        (supabase.auth.onAuthStateChange as jest.Mock).mockReturnValue({
-            data: { subscription: { unsubscribe: jest.fn() } },
-        });
-        (supabase.auth.signOut as jest.Mock).mockResolvedValue({ error: null });
+    await result.current.signOut();
+    expect(db.clearLocalCache).toHaveBeenCalled();
+    expect(supabase.auth.signOut).toHaveBeenCalled();
+  });
 
-        const { result } = renderHook(() => useAuth());
+  it("should listen to auth state changes", async () => {
+    let authCallback: ((event: string, session: any) => void) | null = null;
 
-        await waitFor(() => {
-            expect(result.current.user).toEqual(mockUser);
-        });
+    (supabase.auth.getSession as jest.Mock).mockResolvedValue({
+      data: { session: null },
+    });
+    (supabase.auth.onAuthStateChange as jest.Mock).mockImplementation(
+      (callback) => {
+        authCallback = callback;
+        return {
+          data: { subscription: { unsubscribe: jest.fn() } },
+        };
+      }
+    );
 
-        await result.current.signOut();
-        expect(db.clearLocalCache).toHaveBeenCalled();
-        expect(supabase.auth.signOut).toHaveBeenCalled();
+    const { result } = renderHook(() => useAuth());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
     });
 
-    it('should listen to auth state changes', async () => {
-        let authCallback: ((event: string, session: any) => void) | null = null;
+    // Simulate sign in
+    if (authCallback) {
+      (authCallback as any)("SIGNED_IN", { user: mockUser });
+    }
 
-        (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-            data: { session: null },
-        });
-        (supabase.auth.onAuthStateChange as jest.Mock).mockImplementation((callback) => {
-            authCallback = callback;
-            return {
-                data: { subscription: { unsubscribe: jest.fn() } },
-            };
-        });
+    await waitFor(() => {
+      expect(result.current.user).toEqual(mockUser);
+    });
+  });
 
-        const { result } = renderHook(() => useAuth());
-
-        await waitFor(() => {
-            expect(result.current.loading).toBe(false);
-        });
-
-        // Simulate sign in
-        if (authCallback) {
-            (authCallback as any)('SIGNED_IN', { user: mockUser });
-        }
-
-        await waitFor(() => {
-            expect(result.current.user).toEqual(mockUser);
-        });
+  it("should unsubscribe on unmount", () => {
+    const unsubscribeMock = jest.fn();
+    (supabase.auth.getSession as jest.Mock).mockResolvedValue({
+      data: { session: null },
+    });
+    (supabase.auth.onAuthStateChange as jest.Mock).mockReturnValue({
+      data: { subscription: { unsubscribe: unsubscribeMock } },
     });
 
-    it('should unsubscribe on unmount', () => {
-        const unsubscribeMock = jest.fn();
-        (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-            data: { session: null },
-        });
-        (supabase.auth.onAuthStateChange as jest.Mock).mockReturnValue({
-            data: { subscription: { unsubscribe: unsubscribeMock } },
-        });
+    const { unmount } = renderHook(() => useAuth());
+    unmount();
 
-        const { unmount } = renderHook(() => useAuth());
-        unmount();
-
-        expect(unsubscribeMock).toHaveBeenCalled();
-    });
+    expect(unsubscribeMock).toHaveBeenCalled();
+  });
 });

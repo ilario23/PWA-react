@@ -16,20 +16,20 @@
   ],
   "transactions": [
     {
-      "amount": 45.50,
+      "amount": 45.5,
       "description": "Weekly groceries",
       "date": "2024-01-15",
       "type": "expense",
       "category_id": "optional-uuid-if-linking-to-category-above"
     },
     {
-      "amount": 2500.00,
+      "amount": 2500.0,
       "description": "Monthly salary",
       "date": "2024-01-01",
       "type": "income"
     },
     {
-      "amount": 120.00,
+      "amount": 120.0,
       "description": "Electric bill",
       "date": "2024-01-20",
       "type": "expense"

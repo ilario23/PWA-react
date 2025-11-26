@@ -12,9 +12,11 @@ describe('db', () => {
         expect(db.contexts).toBeDefined();
         expect(db.recurring_transactions).toBeDefined();
         expect(db.user_settings).toBeDefined();
+        expect(db.groups).toBeDefined();
+        expect(db.group_members).toBeDefined();
     });
 
     it('should have correct version', () => {
-        expect(db.verno).toBe(1);
+        expect(db.verno).toBe(2);
     });
 });

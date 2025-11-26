@@ -1,65 +1,65 @@
-import * as React from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, Setting } from '../lib/db';
-import { useAuth } from './useAuth';
+import * as React from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db, Setting } from "../lib/db";
+import { useAuth } from "./useAuth";
 
 export function useSettings() {
-    const { user } = useAuth();
+  const { user } = useAuth();
 
-    const settings = useLiveQuery(
-        () => (user ? db.user_settings.get(user.id) : undefined),
-        [user]
-    );
+  const settings = useLiveQuery(
+    () => (user ? db.user_settings.get(user.id) : undefined),
+    [user]
+  );
 
-    React.useEffect(() => {
-        if (user && settings === undefined) {
-            db.user_settings.get(user.id).then((existing) => {
-                if (!existing) {
-                    db.user_settings.add({
-                        user_id: user.id,
-                        currency: 'EUR',
-                        language: 'en',
-                        theme: 'light',
-                        accentColor: 'slate',
-                        start_of_week: 'monday',
-                        default_view: 'list',
-                        include_investments_in_expense_totals: false,
-                        include_group_expenses: false,
-                        updated_at: new Date().toISOString(),
-                    });
-                }
-            });
+  React.useEffect(() => {
+    if (user && settings === undefined) {
+      db.user_settings.get(user.id).then((existing) => {
+        if (!existing) {
+          db.user_settings.add({
+            user_id: user.id,
+            currency: "EUR",
+            language: "en",
+            theme: "light",
+            accentColor: "slate",
+            start_of_week: "monday",
+            default_view: "list",
+            include_investments_in_expense_totals: false,
+            include_group_expenses: false,
+            updated_at: new Date().toISOString(),
+          });
         }
-    }, [user, settings]);
+      });
+    }
+  }, [user, settings]);
 
-    const updateSettings = async (updates: Partial<Setting>) => {
-        if (!user) return;
+  const updateSettings = async (updates: Partial<Setting>) => {
+    if (!user) return;
 
-        const current = await db.user_settings.get(user.id);
-        if (current) {
-            await db.user_settings.update(user.id, {
-                ...updates,
-                updated_at: new Date().toISOString(),
-            });
-        } else {
-            await db.user_settings.add({
-                user_id: user.id,
-                currency: 'EUR',
-                language: 'en',
-                theme: 'light',
-                accentColor: 'slate',
-                start_of_week: 'monday',
-                default_view: 'list',
-                include_investments_in_expense_totals: false,
-                include_group_expenses: false,
-                ...updates,
-                updated_at: new Date().toISOString(),
-            } as Setting);
-        }
-    };
+    const current = await db.user_settings.get(user.id);
+    if (current) {
+      await db.user_settings.update(user.id, {
+        ...updates,
+        updated_at: new Date().toISOString(),
+      });
+    } else {
+      await db.user_settings.add({
+        user_id: user.id,
+        currency: "EUR",
+        language: "en",
+        theme: "light",
+        accentColor: "slate",
+        start_of_week: "monday",
+        default_view: "list",
+        include_investments_in_expense_totals: false,
+        include_group_expenses: false,
+        ...updates,
+        updated_at: new Date().toISOString(),
+      } as Setting);
+    }
+  };
 
-    return {
-        settings,
-        updateSettings,
-    };
+  return {
+    settings,
+    updateSettings,
+  };
 }

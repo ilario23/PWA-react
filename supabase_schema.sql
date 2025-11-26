@@ -357,3 +357,34 @@ create index idx_transactions_paid_by on public.transactions(paid_by_user_id) wh
 
 -- Recurring Transactions
 create index idx_recurring_transactions_group_id on public.recurring_transactions(group_id) where group_id is not null;
+
+
+-- ============================================================================
+-- REALTIME PUBLICATIONS
+-- ============================================================================
+-- Enable Realtime for all tables that need live sync.
+-- Note: In Supabase Dashboard, you also need to enable Realtime for these tables
+-- under Database > Replication > supabase_realtime publication.
+-- 
+-- Alternatively, run these commands (requires superuser):
+
+-- Drop existing publication if exists and recreate with all tables
+-- drop publication if exists supabase_realtime;
+-- create publication supabase_realtime for table 
+--   public.groups,
+--   public.group_members,
+--   public.transactions,
+--   public.categories,
+--   public.contexts,
+--   public.recurring_transactions;
+
+-- OR add tables to existing publication:
+-- alter publication supabase_realtime add table public.groups;
+-- alter publication supabase_realtime add table public.group_members;
+-- alter publication supabase_realtime add table public.transactions;
+-- alter publication supabase_realtime add table public.categories;
+-- alter publication supabase_realtime add table public.contexts;
+-- alter publication supabase_realtime add table public.recurring_transactions;
+
+-- IMPORTANT: Realtime respects RLS policies. The SELECT policies above
+-- determine what changes each user receives via Realtime subscriptions.

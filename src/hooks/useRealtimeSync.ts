@@ -1,0 +1,242 @@
+import { useEffect, useRef, useCallback, useState } from "react";
+import {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
+import { db } from "../lib/db";
+import { useAuth } from "./useAuth";
+
+// Tables we want to subscribe to
+const REALTIME_TABLES = [
+  "groups",
+  "group_members",
+  "transactions",
+  "categories",
+  "contexts",
+  "recurring_transactions",
+] as const;
+
+type RealtimeTable = (typeof REALTIME_TABLES)[number];
+
+interface RealtimeEvent {
+  table: RealtimeTable;
+  eventType: "INSERT" | "UPDATE" | "DELETE";
+  new: Record<string, any>;
+  old: Record<string, any>;
+}
+
+/**
+ * Hook that manages Supabase Realtime subscriptions.
+ *
+ * Subscribes to changes on all relevant tables and writes
+ * incoming data to Dexie (IndexedDB) for local-first reactivity.
+ *
+ * Uses last-write-wins conflict resolution based on updated_at.
+ */
+export function useRealtimeSync() {
+  const { user } = useAuth();
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastEvent, setLastEvent] = useState<RealtimeEvent | null>(null);
+
+  /**
+   * Handle incoming Realtime events
+   * Uses last-write-wins based on updated_at timestamp
+   */
+  const handleRealtimeEvent = useCallback(
+    async (payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
+      const { eventType, table } = payload;
+      const newRecord = payload.new as Record<string, any> | null;
+      const oldRecord = payload.old as Record<string, any> | null;
+
+      console.log(
+        `[Realtime] ${eventType} on ${table}:`,
+        newRecord?.id || oldRecord?.id
+      );
+
+      // Track last event for debugging
+      setLastEvent({
+        table: table as RealtimeTable,
+        eventType: eventType as "INSERT" | "UPDATE" | "DELETE",
+        new: newRecord || {},
+        old: oldRecord || {},
+      });
+
+      try {
+        const dexieTable = db.table(table);
+
+        switch (eventType) {
+          case "INSERT":
+          case "UPDATE": {
+            if (!newRecord?.id) return;
+
+            // Check if we already have this record locally
+            const existingRecord = await dexieTable.get(newRecord.id);
+
+            // Last-write-wins: compare updated_at timestamps
+            if (existingRecord) {
+              const localUpdatedAt = existingRecord.updated_at
+                ? new Date(existingRecord.updated_at).getTime()
+                : 0;
+              const remoteUpdatedAt = newRecord.updated_at
+                ? new Date(newRecord.updated_at).getTime()
+                : 0;
+
+              // If local is pending sync and has newer timestamp, skip remote update
+              if (
+                existingRecord.pendingSync === 1 &&
+                localUpdatedAt >= remoteUpdatedAt
+              ) {
+                console.log(
+                  `[Realtime] Skipping ${table} ${newRecord.id} - local is newer`
+                );
+                return;
+              }
+            }
+
+            // Calculate year_month for transactions if needed
+            const recordToSave: Record<string, any> = {
+              ...newRecord,
+              pendingSync: 0,
+            };
+            if (table === "transactions" && newRecord.date) {
+              recordToSave.year_month = newRecord.date.substring(0, 7);
+            }
+
+            await dexieTable.put(recordToSave);
+            console.log(`[Realtime] Saved ${table} ${newRecord.id}`);
+            break;
+          }
+
+          case "DELETE": {
+            const recordId = oldRecord?.id || newRecord?.id;
+            if (!recordId) return;
+
+            // For soft deletes, we mark as deleted_at instead of removing
+            const existing = await dexieTable.get(recordId);
+            if (existing) {
+              await dexieTable.update(recordId, {
+                deleted_at: new Date().toISOString(),
+                pendingSync: 0,
+              });
+              console.log(`[Realtime] Soft deleted ${table} ${recordId}`);
+            }
+            break;
+          }
+        }
+      } catch (error) {
+        console.error(
+          `[Realtime] Error handling ${eventType} on ${table}:`,
+          error
+        );
+      }
+    },
+    []
+  );
+
+  /**
+   * Subscribe to Realtime changes for all tables
+   */
+  const subscribe = useCallback(() => {
+    if (!user || channelRef.current) return;
+
+    console.log("[Realtime] Subscribing to changes...");
+
+    // Create a single channel for all table subscriptions
+    const channel = supabase.channel("db-changes");
+
+    // Subscribe to each table
+    for (const table of REALTIME_TABLES) {
+      channel.on(
+        "postgres_changes",
+        {
+          event: "*", // INSERT, UPDATE, DELETE
+          schema: "public",
+          table,
+        },
+        handleRealtimeEvent
+      );
+    }
+
+    // Start the subscription
+    channel.subscribe((status) => {
+      console.log(`[Realtime] Subscription status: ${status}`);
+      setIsConnected(status === "SUBSCRIBED");
+
+      if (status === "SUBSCRIBED") {
+        console.log("[Realtime] Successfully subscribed to all tables");
+      } else if (status === "CHANNEL_ERROR") {
+        console.error("[Realtime] Channel error - will retry");
+      } else if (status === "TIMED_OUT") {
+        console.error("[Realtime] Connection timed out");
+      }
+    });
+
+    channelRef.current = channel;
+  }, [user, handleRealtimeEvent]);
+
+  /**
+   * Unsubscribe from Realtime
+   */
+  const unsubscribe = useCallback(async () => {
+    if (channelRef.current) {
+      console.log("[Realtime] Unsubscribing...");
+      await supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+      setIsConnected(false);
+    }
+  }, []);
+
+  /**
+   * Reconnect (unsubscribe + subscribe)
+   */
+  const reconnect = useCallback(async () => {
+    await unsubscribe();
+    // Small delay before reconnecting
+    setTimeout(() => {
+      subscribe();
+    }, 1000);
+  }, [subscribe, unsubscribe]);
+
+  // Subscribe when user logs in, unsubscribe on logout
+  useEffect(() => {
+    if (user) {
+      subscribe();
+    } else {
+      unsubscribe();
+    }
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user, subscribe, unsubscribe]);
+
+  // Handle online/offline events
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log("[Realtime] Back online, reconnecting...");
+      reconnect();
+    };
+
+    const handleOffline = () => {
+      console.log("[Realtime] Went offline");
+      setIsConnected(false);
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [reconnect]);
+
+  return {
+    isConnected,
+    lastEvent,
+    reconnect,
+    unsubscribe,
+  };
+}

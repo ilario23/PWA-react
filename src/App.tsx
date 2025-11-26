@@ -1,28 +1,37 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AppShell } from '@/components/AppShell';
-import { Dashboard } from '@/pages/Dashboard';
-import { AuthPage } from '@/pages/AuthPage';
-import { useAuth } from '@/hooks/useAuth';
-import { useOnlineSync } from '@/hooks/useOnlineSync';
-import { Toaster } from '@/components/ui/sonner';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AppShell } from "@/components/AppShell";
+import { Dashboard } from "@/pages/Dashboard";
+import { AuthPage } from "@/pages/AuthPage";
+import { useAuth } from "@/hooks/useAuth";
+import { useOnlineSync } from "@/hooks/useOnlineSync";
+import { Toaster } from "@/components/ui/sonner";
 
-import { TransactionsPage } from '@/pages/Transactions';
-import { RecurringTransactionsPage } from '@/pages/RecurringTransactions';
-import { CategoriesPage } from '@/pages/Categories';
-import { ContextsPage } from '@/pages/Contexts';
-import { GroupsPage } from '@/pages/Groups';
-import { GroupDetailPage } from '@/pages/GroupDetail';
+import { TransactionsPage } from "@/pages/Transactions";
+import { RecurringTransactionsPage } from "@/pages/RecurringTransactions";
+import { CategoriesPage } from "@/pages/Categories";
+import { ContextsPage } from "@/pages/Contexts";
+import { GroupsPage } from "@/pages/Groups";
+import { GroupDetailPage } from "@/pages/GroupDetail";
 
-import { StatisticsPage } from '@/pages/Statistics';
+import { StatisticsPage } from "@/pages/Statistics";
 
-import { SettingsPage } from '@/pages/Settings';
+import { SettingsPage } from "@/pages/Settings";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   useOnlineSync(); // Auto-sync when coming online
 
   if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Loading...
+      </div>
+    );
   }
 
   if (!user) {
@@ -32,8 +41,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-import { useSettings } from '@/hooks/useSettings';
-import { useEffect } from 'react';
+import { useSettings } from "@/hooks/useSettings";
+import { useEffect } from "react";
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { settings } = useSettings();
@@ -41,10 +50,13 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (settings?.theme) {
       const root = window.document.documentElement;
-      root.classList.remove('light', 'dark');
+      root.classList.remove("light", "dark");
 
-      if (settings.theme === 'system') {
-        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      if (settings.theme === "system") {
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+          .matches
+          ? "dark"
+          : "light";
         root.classList.add(systemTheme);
       } else {
         root.classList.add(settings.theme);
@@ -69,12 +81,21 @@ function App() {
                 <AppShell>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
-                    <Route path="/transactions" element={<TransactionsPage />} />
-                    <Route path="/recurring" element={<RecurringTransactionsPage />} />
+                    <Route
+                      path="/transactions"
+                      element={<TransactionsPage />}
+                    />
+                    <Route
+                      path="/recurring"
+                      element={<RecurringTransactionsPage />}
+                    />
                     <Route path="/categories" element={<CategoriesPage />} />
                     <Route path="/contexts" element={<ContextsPage />} />
                     <Route path="/groups" element={<GroupsPage />} />
-                    <Route path="/groups/:groupId" element={<GroupDetailPage />} />
+                    <Route
+                      path="/groups/:groupId"
+                      element={<GroupDetailPage />}
+                    />
                     <Route path="/statistics" element={<StatisticsPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
