@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useTranslation } from "react-i18next";
 import { useCategories } from "@/hooks/useCategories";
@@ -32,13 +32,491 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Edit, Target, X } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Edit,
+  Target,
+  X,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { AVAILABLE_ICONS, getIconComponent } from "@/lib/icons";
 import { SyncStatusBadge } from "@/components/SyncStatus";
 import { CategorySelector } from "@/components/CategorySelector";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import type { Category } from "@/lib/db";
+
+// Types for recursive components
+interface CategoryListProps {
+  categories: Category[];
+  depth: number;
+  getChildren: (id: string) => Category[];
+  hasChildren: (id: string) => boolean;
+  expandedCategories: Set<string>;
+  toggleCategory: (id: string) => void;
+  getCategoryBudgetInfo: (
+    id: string
+  ) => { amount: number; spent: number; percentage: number } | null | undefined;
+  handleEdit: (category: Category) => void;
+  handleDeleteClick: (id: string) => void;
+  handleOpenBudgetDialog: (id: string) => void;
+  t: (key: string) => string;
+}
+
+// Recursive Mobile Category Component
+function MobileCategoryList({
+  categories,
+  depth,
+  getChildren,
+  hasChildren,
+  expandedCategories,
+  toggleCategory,
+  getCategoryBudgetInfo,
+  handleEdit,
+  handleDeleteClick,
+  handleOpenBudgetDialog,
+  t,
+}: CategoryListProps) {
+  const baseIndent = 16; // px per level
+  const maxDepth = 5; // Prevent infinite recursion
+
+  if (depth > maxDepth) return null;
+
+  return (
+    <>
+      {categories.map((c, index) => {
+        const budgetInfo =
+          c.type === "expense" ? getCategoryBudgetInfo(c.id) : null;
+        const children = getChildren(c.id);
+        const isExpanded = expandedCategories.has(c.id);
+        const isRoot = depth === 0;
+
+        return (
+          <Collapsible
+            key={c.id}
+            open={isExpanded}
+            onOpenChange={() => toggleCategory(c.id)}
+          >
+            <div
+              className={`rounded-lg border bg-card shadow-sm ${
+                isRoot && index < 20
+                  ? "animate-slide-in-up opacity-0 fill-mode-forwards"
+                  : ""
+              } ${
+                !isRoot ? "ml-4 border-l-2 border-l-muted-foreground/20" : ""
+              }`}
+              style={
+                isRoot && index < 20
+                  ? { animationDelay: `${index * 0.05}s` }
+                  : {}
+              }
+            >
+              <div
+                className="p-4"
+                style={{ paddingLeft: isRoot ? undefined : `${baseIndent}px` }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {children.length > 0 ? (
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 p-0 shrink-0"
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                    ) : (
+                      <div className="w-8 shrink-0" />
+                    )}
+                    <div
+                      className={`${
+                        isRoot ? "h-8 w-8" : "h-6 w-6"
+                      } rounded-full flex items-center justify-center text-white shrink-0`}
+                      style={{ backgroundColor: c.color }}
+                    >
+                      {c.icon &&
+                        (() => {
+                          const IconComp = getIconComponent(c.icon);
+                          return IconComp ? (
+                            <IconComp
+                              className={isRoot ? "h-4 w-4" : "h-3 w-3"}
+                            />
+                          ) : null;
+                        })()}
+                    </div>
+                    <div className="min-w-0">
+                      <div
+                        className={`${
+                          isRoot ? "font-medium" : "font-medium text-sm"
+                        } flex items-center gap-2 flex-wrap`}
+                      >
+                        <span className="truncate">{c.name}</span>
+                        {children.length > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs shrink-0"
+                          >
+                            {children.length}
+                          </Badge>
+                        )}
+                        <SyncStatusBadge isPending={c.pendingSync === 1} />
+                        {c.active === 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs shrink-0"
+                          >
+                            {t("inactive") || "Inactive"}
+                          </Badge>
+                        )}
+                      </div>
+                      {isRoot && (
+                        <div className="text-sm text-muted-foreground capitalize">
+                          {t(c.type)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {c.type === "expense" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={isRoot ? "h-8 w-8" : "h-7 w-7"}
+                        onClick={() => handleOpenBudgetDialog(c.id)}
+                      >
+                        <Target
+                          className={`${isRoot ? "h-4 w-4" : "h-3 w-3"} ${
+                            budgetInfo ? "text-primary" : ""
+                          }`}
+                        />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={isRoot ? "h-8 w-8" : "h-7 w-7"}
+                      onClick={() => handleEdit(c)}
+                    >
+                      <Edit className={isRoot ? "h-4 w-4" : "h-3 w-3"} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={isRoot ? "h-8 w-8" : "h-7 w-7"}
+                      onClick={() => handleDeleteClick(c.id)}
+                    >
+                      <Trash2
+                        className={`${
+                          isRoot ? "h-4 w-4" : "h-3 w-3"
+                        } text-destructive`}
+                      />
+                    </Button>
+                  </div>
+                </div>
+                {/* Budget progress bar */}
+                {budgetInfo && (
+                  <div className="mt-3 ml-11 space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>
+                        {t("budget")}: {budgetInfo.amount.toFixed(2)}
+                      </span>
+                      <span
+                        className={
+                          budgetInfo.percentage > 100 ? "text-destructive" : ""
+                        }
+                      >
+                        {budgetInfo.spent.toFixed(2)} (
+                        {budgetInfo.percentage.toFixed(0)}%)
+                      </span>
+                    </div>
+                    <div
+                      className={`${
+                        isRoot ? "h-2" : "h-1.5"
+                      } bg-muted rounded-full overflow-hidden`}
+                    >
+                      <div
+                        className={`h-full transition-all ${
+                          budgetInfo.percentage > 100
+                            ? "bg-destructive"
+                            : budgetInfo.percentage > 80
+                            ? "bg-yellow-500"
+                            : "bg-primary"
+                        }`}
+                        style={{
+                          width: `${Math.min(budgetInfo.percentage, 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Children categories - recursive */}
+              <CollapsibleContent>
+                {children.length > 0 && (
+                  <div className="border-t bg-muted/20 p-2">
+                    <MobileCategoryList
+                      categories={children}
+                      depth={depth + 1}
+                      getChildren={getChildren}
+                      hasChildren={hasChildren}
+                      expandedCategories={expandedCategories}
+                      toggleCategory={toggleCategory}
+                      getCategoryBudgetInfo={getCategoryBudgetInfo}
+                      handleEdit={handleEdit}
+                      handleDeleteClick={handleDeleteClick}
+                      handleOpenBudgetDialog={handleOpenBudgetDialog}
+                      t={t}
+                    />
+                  </div>
+                )}
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
+        );
+      })}
+    </>
+  );
+}
+
+// Recursive Desktop Category Rows Component
+function DesktopCategoryRows({
+  categories,
+  depth,
+  getChildren,
+  hasChildren,
+  expandedCategories,
+  toggleCategory,
+  getCategoryBudgetInfo,
+  handleEdit,
+  handleDeleteClick,
+  handleOpenBudgetDialog,
+  t,
+}: CategoryListProps) {
+  const maxDepth = 5; // Prevent infinite recursion
+
+  if (depth > maxDepth) return null;
+
+  return (
+    <>
+      {categories.map((c, index) => {
+        const budgetInfo =
+          c.type === "expense" ? getCategoryBudgetInfo(c.id) : null;
+        const children = getChildren(c.id);
+        const isExpanded = expandedCategories.has(c.id);
+        const isRoot = depth === 0;
+        const indentPx = depth * 24; // 24px per level
+
+        return (
+          <React.Fragment key={c.id}>
+            <TableRow
+              className={`${
+                isRoot && index < 20
+                  ? "animate-slide-in-up opacity-0 fill-mode-forwards"
+                  : ""
+              } ${
+                children.length > 0 ? "cursor-pointer hover:bg-muted/50" : ""
+              } ${!isRoot ? "bg-muted/20" : ""}`}
+              style={
+                isRoot && index < 20
+                  ? { animationDelay: `${index * 0.03}s` }
+                  : {}
+              }
+            >
+              <TableCell className="w-8">
+                {children.length > 0 ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => toggleCategory(c.id)}
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </Button>
+                ) : null}
+              </TableCell>
+              <TableCell>
+                <div
+                  className="flex items-center gap-2"
+                  style={{ paddingLeft: `${indentPx}px` }}
+                >
+                  {!isRoot && (
+                    <div className="w-4 h-4 border-l-2 border-b-2 border-muted-foreground/30 rounded-bl shrink-0" />
+                  )}
+                  <div
+                    className={`${
+                      isRoot ? "h-4 w-4" : "h-3 w-3"
+                    } rounded-full shrink-0`}
+                    style={{ backgroundColor: c.color }}
+                  />
+                  {c.icon &&
+                    (() => {
+                      const IconComp = getIconComponent(c.icon);
+                      return IconComp ? (
+                        <IconComp className={isRoot ? "h-4 w-4" : "h-3 w-3"} />
+                      ) : null;
+                    })()}
+                  <span className={isRoot ? "" : "text-sm"}>{c.name}</span>
+                  {children.length > 0 && (
+                    <Badge variant="secondary" className="text-xs ml-1">
+                      {children.length}
+                    </Badge>
+                  )}
+                  <SyncStatusBadge isPending={c.pendingSync === 1} />
+                </div>
+              </TableCell>
+              <TableCell className={`capitalize ${isRoot ? "" : "text-sm"}`}>
+                {t(c.type)}
+              </TableCell>
+              <TableCell>
+                {c.type === "expense" ? (
+                  budgetInfo ? (
+                    <div
+                      className={`space-y-1 ${
+                        isRoot ? "min-w-[120px]" : "min-w-[100px]"
+                      }`}
+                    >
+                      <div className="flex justify-between text-xs">
+                        <span>
+                          {budgetInfo.spent.toFixed(0)} /{" "}
+                          {budgetInfo.amount.toFixed(0)}
+                        </span>
+                        <span
+                          className={
+                            budgetInfo.percentage > 100
+                              ? "text-destructive"
+                              : ""
+                          }
+                        >
+                          {budgetInfo.percentage.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div
+                        className={`${
+                          isRoot ? "h-2" : "h-1.5"
+                        } bg-muted rounded-full overflow-hidden`}
+                      >
+                        <div
+                          className={`h-full transition-all ${
+                            budgetInfo.percentage > 100
+                              ? "bg-destructive"
+                              : budgetInfo.percentage > 80
+                              ? "bg-yellow-500"
+                              : "bg-primary"
+                          }`}
+                          style={{
+                            width: `${Math.min(budgetInfo.percentage, 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">-</span>
+                  )
+                ) : (
+                  <span className="text-muted-foreground text-sm">N/A</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {c.active === 0 ? (
+                  <Badge
+                    variant="secondary"
+                    className={isRoot ? "" : "text-xs"}
+                  >
+                    {t("inactive") || "Inactive"}
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className={`text-green-600 border-green-600 ${
+                      isRoot ? "" : "text-xs"
+                    }`}
+                  >
+                    {t("active") || "Active"}
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center justify-end gap-2">
+                  {c.type === "expense" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={isRoot ? "" : "h-7 w-7"}
+                      onClick={() => handleOpenBudgetDialog(c.id)}
+                      title={t("set_budget")}
+                    >
+                      <Target
+                        className={`${isRoot ? "h-4 w-4" : "h-3 w-3"} ${
+                          budgetInfo ? "text-primary" : ""
+                        }`}
+                      />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={isRoot ? "" : "h-7 w-7"}
+                    onClick={() => handleEdit(c)}
+                  >
+                    <Edit className={isRoot ? "h-4 w-4" : "h-3 w-3"} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={isRoot ? "" : "h-7 w-7"}
+                    onClick={() => handleDeleteClick(c.id)}
+                  >
+                    <Trash2
+                      className={`${
+                        isRoot ? "h-4 w-4" : "h-3 w-3"
+                      } text-destructive`}
+                    />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+
+            {/* Children rows - recursive */}
+            {children.length > 0 && isExpanded && (
+              <DesktopCategoryRows
+                categories={children}
+                depth={depth + 1}
+                getChildren={getChildren}
+                hasChildren={hasChildren}
+                expandedCategories={expandedCategories}
+                toggleCategory={toggleCategory}
+                getCategoryBudgetInfo={getCategoryBudgetInfo}
+                handleEdit={handleEdit}
+                handleDeleteClick={handleDeleteClick}
+                handleOpenBudgetDialog={handleOpenBudgetDialog}
+                t={t}
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
+}
 
 export function CategoriesPage() {
   const { t } = useTranslation();
@@ -300,6 +778,61 @@ export function CategoriesPage() {
     return budgetsWithSpent?.find((b) => b.category_id === categoryId);
   };
 
+  // Build a map of parent_id -> children for quick lookup
+  const childrenMap = useMemo(() => {
+    if (!categories) return new Map<string, typeof categories>();
+
+    const map = new Map<string | undefined, typeof categories>();
+
+    categories.forEach((cat) => {
+      const parentId = cat.parent_id || undefined;
+      const siblings = map.get(parentId) || [];
+      siblings.push(cat);
+      map.set(parentId, siblings);
+    });
+
+    return map;
+  }, [categories]);
+
+  // Get root categories (no parent)
+  const rootCategories = useMemo(() => {
+    return childrenMap.get(undefined) || [];
+  }, [childrenMap]);
+
+  // Get children of a category
+  const getChildren = (categoryId: string) => {
+    return childrenMap.get(categoryId) || [];
+  };
+
+  // Check if a category has children
+  const hasChildren = (categoryId: string) => {
+    return getChildren(categoryId).length > 0;
+  };
+
+  // Get the depth/level of a category (for indentation)
+  const getCategoryDepth = (categoryId: string): number => {
+    const category = categories?.find((c) => c.id === categoryId);
+    if (!category?.parent_id) return 0;
+    return 1 + getCategoryDepth(category.parent_id);
+  };
+
+  // Track which categories are expanded
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    new Set()
+  );
+
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -456,7 +989,7 @@ export function CategoriesPage() {
         </Dialog>
       </div>
 
-      {/* Mobile View: Card Stack */}
+      {/* Mobile View: Card Stack with Collapsible */}
       <div className="space-y-3 md:hidden">
         {!categories ? (
           // Skeleton loading state
@@ -487,124 +1020,28 @@ export function CategoriesPage() {
             {t("no_categories") || "No categories"}
           </div>
         ) : (
-          categories.map((c, index) => {
-            const budgetInfo =
-              c.type === "expense" ? getCategoryBudgetInfo(c.id) : null;
-            return (
-              <div
-                key={c.id}
-                className={`rounded-lg border bg-card p-4 shadow-sm ${
-                  index < 20
-                    ? "animate-slide-in-up opacity-0 fill-mode-forwards"
-                    : ""
-                }`}
-                style={index < 20 ? { animationDelay: `${index * 0.05}s` } : {}}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="h-8 w-8 rounded-full flex items-center justify-center text-white"
-                      style={{ backgroundColor: c.color }}
-                    >
-                      {c.icon &&
-                        (() => {
-                          const IconComp = getIconComponent(c.icon);
-                          return IconComp ? (
-                            <IconComp className="h-4 w-4" />
-                          ) : null;
-                        })()}
-                    </div>
-                    <div>
-                      <div className="font-medium flex items-center gap-2">
-                        {c.name}
-                        <SyncStatusBadge isPending={c.pendingSync === 1} />
-                        {c.active === 0 && (
-                          <Badge variant="secondary" className="text-xs">
-                            {t("inactive") || "Inactive"}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground capitalize">
-                        {t(c.type)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    {c.type === "expense" && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleOpenBudgetDialog(c.id)}
-                      >
-                        <Target
-                          className={`h-4 w-4 ${
-                            budgetInfo ? "text-primary" : ""
-                          }`}
-                        />
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleEdit(c)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleDeleteClick(c.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-                {/* Budget progress bar for mobile */}
-                {budgetInfo && (
-                  <div className="mt-3 space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>
-                        {t("budget")}: {budgetInfo.amount.toFixed(2)}
-                      </span>
-                      <span
-                        className={
-                          budgetInfo.percentage > 100 ? "text-destructive" : ""
-                        }
-                      >
-                        {budgetInfo.spent.toFixed(2)} (
-                        {budgetInfo.percentage.toFixed(0)}%)
-                      </span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all ${
-                          budgetInfo.percentage > 100
-                            ? "bg-destructive"
-                            : budgetInfo.percentage > 80
-                            ? "bg-yellow-500"
-                            : "bg-primary"
-                        }`}
-                        style={{
-                          width: `${Math.min(budgetInfo.percentage, 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })
+          <MobileCategoryList
+            categories={rootCategories}
+            depth={0}
+            getChildren={getChildren}
+            hasChildren={hasChildren}
+            expandedCategories={expandedCategories}
+            toggleCategory={toggleCategory}
+            getCategoryBudgetInfo={getCategoryBudgetInfo}
+            handleEdit={handleEdit}
+            handleDeleteClick={handleDeleteClick}
+            handleOpenBudgetDialog={handleOpenBudgetDialog}
+            t={t}
+          />
         )}
       </div>
 
-      {/* Desktop View: Table */}
+      {/* Desktop View: Table with Collapsible */}
       <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8"></TableHead>
               <TableHead>{t("name")}</TableHead>
               <TableHead>{t("type")}</TableHead>
               <TableHead>{t("budget")}</TableHead>
@@ -613,169 +1050,57 @@ export function CategoriesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!categories
-              ? // Skeleton loading state for desktop
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow
-                    key={i}
-                    className="animate-slide-in-up opacity-0 fill-mode-forwards"
-                    style={{ animationDelay: `${i * 0.03}s` }}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Skeleton className="h-4 w-4 rounded-full" />
-                        <Skeleton className="h-4 w-4" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-16" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-20" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-5 w-16 rounded-full" />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        <Skeleton className="h-8 w-8 rounded-md" />
-                        <Skeleton className="h-8 w-8 rounded-md" />
-                        <Skeleton className="h-8 w-8 rounded-md" />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              : categories.map((c, index) => {
-                  const budgetInfo =
-                    c.type === "expense" ? getCategoryBudgetInfo(c.id) : null;
-                  return (
-                    <TableRow
-                      key={c.id}
-                      className={`${
-                        index < 20
-                          ? "animate-slide-in-up opacity-0 fill-mode-forwards"
-                          : ""
-                      }`}
-                      style={
-                        index < 20 ? { animationDelay: `${index * 0.03}s` } : {}
-                      }
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="h-4 w-4 rounded-full"
-                            style={{ backgroundColor: c.color }}
-                          />
-                          {c.icon &&
-                            (() => {
-                              const IconComp = getIconComponent(c.icon);
-                              return IconComp ? (
-                                <IconComp className="h-4 w-4" />
-                              ) : null;
-                            })()}
-                          {c.name}
-                          <SyncStatusBadge isPending={c.pendingSync === 1} />
-                        </div>
-                      </TableCell>
-                      <TableCell className="capitalize">{t(c.type)}</TableCell>
-                      <TableCell>
-                        {c.type === "expense" ? (
-                          budgetInfo ? (
-                            <div className="space-y-1 min-w-[120px]">
-                              <div className="flex justify-between text-xs">
-                                <span>
-                                  {budgetInfo.spent.toFixed(0)} /{" "}
-                                  {budgetInfo.amount.toFixed(0)}
-                                </span>
-                                <span
-                                  className={
-                                    budgetInfo.percentage > 100
-                                      ? "text-destructive"
-                                      : ""
-                                  }
-                                >
-                                  {budgetInfo.percentage.toFixed(0)}%
-                                </span>
-                              </div>
-                              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full transition-all ${
-                                    budgetInfo.percentage > 100
-                                      ? "bg-destructive"
-                                      : budgetInfo.percentage > 80
-                                      ? "bg-yellow-500"
-                                      : "bg-primary"
-                                  }`}
-                                  style={{
-                                    width: `${Math.min(
-                                      budgetInfo.percentage,
-                                      100
-                                    )}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">
-                              -
-                            </span>
-                          )
-                        ) : (
-                          <span className="text-muted-foreground text-sm">
-                            N/A
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {c.active === 0 ? (
-                          <Badge variant="secondary">
-                            {t("inactive") || "Inactive"}
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="text-green-600 border-green-600"
-                          >
-                            {t("active") || "Active"}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-2">
-                          {c.type === "expense" && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenBudgetDialog(c.id)}
-                              title={t("set_budget")}
-                            >
-                              <Target
-                                className={`h-4 w-4 ${
-                                  budgetInfo ? "text-primary" : ""
-                                }`}
-                              />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(c)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteClick(c.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+            {!categories ? (
+              // Skeleton loading state for desktop
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow
+                  key={i}
+                  className="animate-slide-in-up opacity-0 fill-mode-forwards"
+                  style={{ animationDelay: `${i * 0.03}s` }}
+                >
+                  <TableCell>
+                    <Skeleton className="h-4 w-4" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-4 w-4 rounded-full" />
+                      <Skeleton className="h-4 w-4" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-2">
+                      <Skeleton className="h-8 w-8 rounded-md" />
+                      <Skeleton className="h-8 w-8 rounded-md" />
+                      <Skeleton className="h-8 w-8 rounded-md" />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <DesktopCategoryRows
+                categories={rootCategories}
+                depth={0}
+                getChildren={getChildren}
+                hasChildren={hasChildren}
+                expandedCategories={expandedCategories}
+                toggleCategory={toggleCategory}
+                getCategoryBudgetInfo={getCategoryBudgetInfo}
+                handleEdit={handleEdit}
+                handleDeleteClick={handleDeleteClick}
+                handleOpenBudgetDialog={handleOpenBudgetDialog}
+                t={t}
+              />
+            )}
           </TableBody>
         </Table>
       </div>
