@@ -50,13 +50,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="flex h-screen flex-col md:flex-row bg-background overscroll-none overflow-hidden">
+    <div className="flex min-h-[calc(100dvh-env(safe-area-inset-top))] flex-col md:flex-row bg-background overscroll-none overflow-hidden">
       <MobileNav navigation={navigation} />
       <DesktopNav navigation={navigation} />
 
-      {/* Main Content - pt-14 compensates for fixed mobile header, pb for iOS safe area */}
-      <main className="flex-1 w-full overflow-y-auto overscroll-contain p-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-8 md:pt-8 md:pb-8">
-        <div className="mx-auto max-w-6xl space-y-6">{children}</div>
+      {/* Main Content - pt-14 compensates for fixed mobile header (56px), pb for iOS safe area bottom */}
+      <main className="flex-1 w-full overflow-y-auto overscroll-contain p-4 pt-14 md:p-8 md:pt-8 md:pb-8">
+        <div className="mx-auto max-w-6xl space-y-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-0">
+          {children}
+        </div>
       </main>
     </div>
   );

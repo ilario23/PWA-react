@@ -167,7 +167,6 @@
   "monthly_cash_flow": "Flusso di Cassa Mensile",
   "context_analytics": "Analisi per Contesto",
   "context_analytics_desc": "Analisi dettagliata delle spese per contesto",
-  "transactions": "Transazioni",
   "top_category": "Categoria Principale",
   "breakdown_by_category": "Ripartizione per categoria",
   "top_categories": "Top Categorie",
@@ -360,5 +359,9 @@
   "full_sync_desc": "Riscarica tutti i dati dal server",
   "full_sync_hint": "Usa 'Sync Completo' se i dati sembrano non sincronizzati dopo modifiche dirette al database.",
   "full_sync_completed": "Sincronizzazione completa completata!",
-  "sync_error": "Sincronizzazione fallita"
+  "sync_error": "Sincronizzazione fallita",
+  "monthly_average": "Media Mensile",
+  "tap_for_average": "Tocca per media mensile",
+  "per_month": "/mese",
+  "months_with_data": "mesi con dati"
 }

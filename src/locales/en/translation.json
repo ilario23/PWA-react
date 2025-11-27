@@ -167,7 +167,6 @@
   "monthly_cash_flow": "Monthly Cash Flow",
   "context_analytics": "Context Analytics",
   "context_analytics_desc": "Detailed expense analysis by context",
-  "transactions": "Transactions",
   "top_category": "Top Category",
   "breakdown_by_category": "Breakdown by category",
   "top_categories": "Top Categories",
@@ -360,5 +359,9 @@
   "full_sync_desc": "Re-download all data from server",
   "full_sync_hint": "Use 'Full Sync' if data seems out of sync after direct database changes.",
   "full_sync_completed": "Full sync completed!",
-  "sync_error": "Sync failed"
+  "sync_error": "Sync failed",
+  "monthly_average": "Monthly Average",
+  "tap_for_average": "Tap for monthly avg",
+  "per_month": "/mo",
+  "months_with_data": "months with data"
 }

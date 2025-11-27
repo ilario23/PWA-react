@@ -354,6 +354,44 @@ export function Dashboard() {
                     right: 12,
                   }}
                 >
+                  <defs>
+                    <linearGradient
+                      id="cumulativeGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor="var(--color-cumulative)"
+                        stopOpacity={0.8}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="var(--color-cumulative)"
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                    <linearGradient
+                      id="projectionGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor="var(--color-projection)"
+                        stopOpacity={0.6}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="var(--color-projection)"
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid vertical={false} />
                   <XAxis
                     dataKey="day"
@@ -369,15 +407,13 @@ export function Dashboard() {
                   <Area
                     dataKey="cumulative"
                     type="monotone"
-                    fill="var(--color-cumulative)"
-                    fillOpacity={0.4}
+                    fill="url(#cumulativeGradient)"
                     stroke="var(--color-cumulative)"
                   />
                   <Area
                     dataKey="projection"
                     type="monotone"
-                    fill="var(--color-projection)"
-                    fillOpacity={0.3}
+                    fill="url(#projectionGradient)"
                     stroke="var(--color-projection)"
                     strokeDasharray="5 5"
                   />

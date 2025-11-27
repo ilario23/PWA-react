@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useStatistics } from "@/hooks/useStatistics";
+import { FlipCard } from "@/components/ui/flip-card";
 import {
   Card,
   CardContent,
@@ -24,7 +25,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  LabelList,
   Radar,
   RadarChart,
   PolarAngleAxis,
@@ -71,6 +71,13 @@ export function StatisticsPage() {
     undefined
   );
 
+  // State for flip cards (yearly view) - which cards show monthly average
+  const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
+
+  const toggleCard = (cardId: string) => {
+    setFlippedCards((prev) => ({ ...prev, [cardId]: !prev[cardId] }));
+  };
+
   // Get statistics based on current selection
   const {
     monthlyStats,
@@ -97,6 +104,8 @@ export function StatisticsPage() {
     monthlyComparison,
     yearlyComparison,
     categoryComparison,
+    monthlyExpensesByHierarchy,
+    yearlyExpensesByHierarchy,
   } = useStatistics({
     selectedMonth,
     selectedYear,
@@ -112,6 +121,112 @@ export function StatisticsPage() {
     activeTab === "monthly"
       ? monthlyCategoryPercentages
       : yearlyCategoryPercentages;
+  const currentExpensesByHierarchy =
+    activeTab === "monthly"
+      ? monthlyExpensesByHierarchy
+      : yearlyExpensesByHierarchy;
+
+  // Get all unique child category names across all hierarchy data for stacked bar config
+  const allChildCategories = useMemo(() => {
+    const allChildren = new Set<string>();
+    currentExpensesByHierarchy.forEach((item) => {
+      item._children.forEach((child) => {
+        allChildren.add(child.name);
+      });
+    });
+    return Array.from(allChildren);
+  }, [currentExpensesByHierarchy]);
+
+  // Helper function to convert hex color to HSL and create shade variations
+  const hexToHsl = (
+    hex: string
+  ): { h: number; s: number; l: number } | null => {
+    // Remove # if present
+    hex = hex.replace(/^#/, "");
+    if (hex.length !== 6) return null;
+
+    const r = parseInt(hex.slice(0, 2), 16) / 255;
+    const g = parseInt(hex.slice(2, 4), 16) / 255;
+    const b = parseInt(hex.slice(4, 6), 16) / 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0;
+    let s = 0;
+    const l = (max + min) / 2;
+
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r:
+          h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+          break;
+        case g:
+          h = ((b - r) / d + 2) / 6;
+          break;
+        case b:
+          h = ((r - g) / d + 4) / 6;
+          break;
+      }
+    }
+
+    return { h: h * 360, s: s * 100, l: l * 100 };
+  };
+
+  // Create shade of a color (lighter or darker based on index)
+  const createShade = (
+    baseColor: string,
+    index: number,
+    total: number
+  ): string => {
+    const hsl = hexToHsl(baseColor);
+    if (!hsl) {
+      // Fallback if color parsing fails
+      return `hsl(${(index * 60) % 360}, 70%, ${45 + ((index * 10) % 30)}%)`;
+    }
+
+    // Create variations: first item is darkest, last is lightest
+    // Range from 30% to 70% lightness for good visibility
+    const minLightness = 30;
+    const maxLightness = 70;
+    const lightnessRange = maxLightness - minLightness;
+    const lightnessStep = total > 1 ? lightnessRange / (total - 1) : 0;
+    const newLightness = minLightness + index * lightnessStep;
+
+    // Also slightly vary saturation for more distinction
+    const saturationVariation = Math.max(
+      50,
+      Math.min(90, hsl.s + (index % 2 === 0 ? 5 : -5))
+    );
+
+    return `hsl(${hsl.h.toFixed(0)}, ${saturationVariation.toFixed(
+      0
+    )}%, ${newLightness.toFixed(0)}%)`;
+  };
+
+  // Generate chart config with shaded colors per root category
+  const stackedBarConfig = useMemo(() => {
+    const config: ChartConfig = {};
+
+    currentExpensesByHierarchy.forEach((item) => {
+      const rootColor = item.rootColor || "#6366f1"; // Default indigo if no color
+      const childCount = item._children.length;
+
+      item._children.forEach((child, index) => {
+        // Create unique key combining root and child to avoid conflicts
+        const uniqueKey = child.name;
+        if (!config[uniqueKey]) {
+          config[uniqueKey] = {
+            label: child.name,
+            color: createShade(rootColor, index, childCount),
+          };
+        }
+      });
+    });
+
+    return config;
+  }, [currentExpensesByHierarchy]);
 
   const chartConfig = {
     income: {
@@ -146,14 +261,6 @@ export function StatisticsPage() {
       fill: "hsl(217.2 91.2% 59.8%)",
     },
   ].filter((item) => item.value > 0);
-
-  // Bar chart data
-  const barData = currentStats.byCategory.map((item, index) => ({
-    ...item,
-    fill: `hsl(var(--chart-${(index % 5) + 1}))`, // Use chart colors for variety
-  }));
-
-  const sortedBarData = [...barData].sort((a, b) => b.value - a.value);
 
   // Create dynamic config for category charts (for legend)
   const categoryChartConfig = currentCategoryPercentages.reduce(
@@ -200,6 +307,23 @@ export function StatisticsPage() {
       setSelectedMonth(`${year}-${currentMonthPart}`);
     }
   };
+
+  // Calculate monthly averages for yearly view
+  // Uses months with actual data, not always 12
+  const yearlyMonthlyAverages = useMemo(() => {
+    const monthsWithData = monthlyTrendData.filter(
+      (m) => m.income > 0 || m.expense > 0
+    ).length;
+    const divisor = Math.max(monthsWithData, 1);
+
+    return {
+      income: yearlyStats.income / divisor,
+      expense: yearlyStats.expense / divisor,
+      investment: yearlyStats.investment / divisor,
+      netBalance: yearlyNetBalance / divisor,
+      monthCount: monthsWithData,
+    };
+  }, [yearlyStats, yearlyNetBalance, monthlyTrendData]);
 
   return (
     <div className="space-y-6">
@@ -275,62 +399,272 @@ export function StatisticsPage() {
         )}
       </Tabs>
 
-      {/* Summary Cards - Always visible, dynamic content based on selected tab */}
+      {/* Summary Cards - Monthly: static | Yearly: interactive flip cards */}
       <div className="grid gap-2 md:gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              {t("total_income")}
-            </CardTitle>
-            <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
-          </CardHeader>
-          <CardContent className="pb-2 md:pb-6">
-            <div className="text-lg md:text-2xl font-bold text-green-500">
-              +€{currentStats.income.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              {t("total_expenses")}
-            </CardTitle>
-            <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-red-500" />
-          </CardHeader>
-          <CardContent className="pb-2 md:pb-6">
-            <div className="text-lg md:text-2xl font-bold text-red-500">
-              -€{currentStats.expense.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              {t("investment")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-2 md:pb-6">
-            <div className="text-lg md:text-2xl font-bold text-blue-500">
-              €{currentStats.investment.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              {t("net_balance")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-2 md:pb-6">
-            <div
-              className={`text-lg md:text-2xl font-bold ${
-                currentNetBalance >= 0 ? "text-green-500" : "text-red-500"
-              }`}
-            >
-              {currentNetBalance >= 0 ? "+" : ""}€{currentNetBalance.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Income Card */}
+        {activeTab === "yearly" ? (
+          <FlipCard
+            className="h-[100px] md:h-[116px]"
+            isFlipped={flippedCards.income}
+            onFlip={() => toggleCard("income")}
+            direction="top"
+            frontContent={
+              <Card className="h-full hover:bg-accent/50 transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                  <CardTitle className="text-xs md:text-sm font-medium">
+                    {t("total_income")}
+                  </CardTitle>
+                  <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
+                </CardHeader>
+                <CardContent className="pb-2 md:pb-6">
+                  <div className="text-lg md:text-2xl font-bold text-green-500">
+                    +€{currentStats.income.toFixed(2)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t("tap_for_average")}
+                  </p>
+                </CardContent>
+              </Card>
+            }
+            backContent={
+              <Card className="h-full bg-accent/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                  <CardTitle className="text-xs md:text-sm font-medium">
+                    {t("monthly_average")}
+                  </CardTitle>
+                  <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
+                </CardHeader>
+                <CardContent className="pb-2 md:pb-6">
+                  <div className="text-lg md:text-2xl font-bold text-green-500">
+                    +€{yearlyMonthlyAverages.income.toFixed(2)}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {t("per_month")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {yearlyMonthlyAverages.monthCount} {t("months_with_data")}
+                  </p>
+                </CardContent>
+              </Card>
+            }
+          />
+        ) : (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium">
+                {t("total_income")}
+              </CardTitle>
+              <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
+            </CardHeader>
+            <CardContent className="pb-2 md:pb-6">
+              <div className="text-lg md:text-2xl font-bold text-green-500">
+                +€{currentStats.income.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Expense Card */}
+        {activeTab === "yearly" ? (
+          <FlipCard
+            className="h-[100px] md:h-[116px]"
+            isFlipped={flippedCards.expense}
+            onFlip={() => toggleCard("expense")}
+            direction="top"
+            frontContent={
+              <Card className="h-full hover:bg-accent/50 transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                  <CardTitle className="text-xs md:text-sm font-medium">
+                    {t("total_expenses")}
+                  </CardTitle>
+                  <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-red-500" />
+                </CardHeader>
+                <CardContent className="pb-2 md:pb-6">
+                  <div className="text-lg md:text-2xl font-bold text-red-500">
+                    -€{currentStats.expense.toFixed(2)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t("tap_for_average")}
+                  </p>
+                </CardContent>
+              </Card>
+            }
+            backContent={
+              <Card className="h-full bg-accent/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                  <CardTitle className="text-xs md:text-sm font-medium">
+                    {t("monthly_average")}
+                  </CardTitle>
+                  <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-red-500" />
+                </CardHeader>
+                <CardContent className="pb-2 md:pb-6">
+                  <div className="text-lg md:text-2xl font-bold text-red-500">
+                    -€{yearlyMonthlyAverages.expense.toFixed(2)}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {t("per_month")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {yearlyMonthlyAverages.monthCount} {t("months_with_data")}
+                  </p>
+                </CardContent>
+              </Card>
+            }
+          />
+        ) : (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium">
+                {t("total_expenses")}
+              </CardTitle>
+              <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-red-500" />
+            </CardHeader>
+            <CardContent className="pb-2 md:pb-6">
+              <div className="text-lg md:text-2xl font-bold text-red-500">
+                -€{currentStats.expense.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Investment Card */}
+        {activeTab === "yearly" ? (
+          <FlipCard
+            className="h-[100px] md:h-[116px]"
+            isFlipped={flippedCards.investment}
+            onFlip={() => toggleCard("investment")}
+            direction="top"
+            frontContent={
+              <Card className="h-full hover:bg-accent/50 transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                  <CardTitle className="text-xs md:text-sm font-medium">
+                    {t("investment")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pb-2 md:pb-6">
+                  <div className="text-lg md:text-2xl font-bold text-blue-500">
+                    €{currentStats.investment.toFixed(2)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t("tap_for_average")}
+                  </p>
+                </CardContent>
+              </Card>
+            }
+            backContent={
+              <Card className="h-full bg-accent/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                  <CardTitle className="text-xs md:text-sm font-medium">
+                    {t("monthly_average")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pb-2 md:pb-6">
+                  <div className="text-lg md:text-2xl font-bold text-blue-500">
+                    €{yearlyMonthlyAverages.investment.toFixed(2)}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {t("per_month")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {yearlyMonthlyAverages.monthCount} {t("months_with_data")}
+                  </p>
+                </CardContent>
+              </Card>
+            }
+          />
+        ) : (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium">
+                {t("investment")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pb-2 md:pb-6">
+              <div className="text-lg md:text-2xl font-bold text-blue-500">
+                €{currentStats.investment.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Net Balance Card */}
+        {activeTab === "yearly" ? (
+          <FlipCard
+            className="h-[100px] md:h-[116px]"
+            isFlipped={flippedCards.netBalance}
+            onFlip={() => toggleCard("netBalance")}
+            direction="top"
+            frontContent={
+              <Card className="h-full hover:bg-accent/50 transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                  <CardTitle className="text-xs md:text-sm font-medium">
+                    {t("net_balance")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pb-2 md:pb-6">
+                  <div
+                    className={`text-lg md:text-2xl font-bold ${
+                      currentNetBalance >= 0 ? "text-green-500" : "text-red-500"
+                    }`}
+                  >
+                    {currentNetBalance >= 0 ? "+" : ""}€
+                    {currentNetBalance.toFixed(2)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t("tap_for_average")}
+                  </p>
+                </CardContent>
+              </Card>
+            }
+            backContent={
+              <Card className="h-full bg-accent/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                  <CardTitle className="text-xs md:text-sm font-medium">
+                    {t("monthly_average")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pb-2 md:pb-6">
+                  <div
+                    className={`text-lg md:text-2xl font-bold ${
+                      yearlyMonthlyAverages.netBalance >= 0
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {yearlyMonthlyAverages.netBalance >= 0 ? "+" : ""}€
+                    {yearlyMonthlyAverages.netBalance.toFixed(2)}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {t("per_month")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {yearlyMonthlyAverages.monthCount} {t("months_with_data")}
+                  </p>
+                </CardContent>
+              </Card>
+            }
+          />
+        ) : (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium">
+                {t("net_balance")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pb-2 md:pb-6">
+              <div
+                className={`text-lg md:text-2xl font-bold ${
+                  currentNetBalance >= 0 ? "text-green-500" : "text-red-500"
+                }`}
+              >
+                {currentNetBalance >= 0 ? "+" : ""}€
+                {currentNetBalance.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Saving Rate - stays static (percentage doesn't need monthly average) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
             <CardTitle className="text-xs md:text-sm font-medium">
@@ -363,6 +697,8 @@ export function StatisticsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Saving Rate with Investments - stays static */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
             <CardTitle className="text-xs md:text-sm font-medium">
@@ -476,49 +812,69 @@ export function StatisticsPage() {
               </CardContent>
             </Card>
 
-            {/* Horizontal Bar Chart - Expense Breakdown */}
+            {/* Horizontal Stacked Bar Chart - Expense Breakdown by Category Hierarchy */}
             <Card className="md:col-span-2 min-w-0">
               <CardHeader>
                 <CardTitle>{t("expense_breakdown")}</CardTitle>
               </CardHeader>
               <CardContent className="min-w-0">
-                {sortedBarData.length > 0 ? (
+                {currentExpensesByHierarchy.length > 0 ? (
                   <ChartContainer
-                    config={{}}
+                    config={stackedBarConfig}
                     className="w-full max-w-[100%] overflow-hidden"
                     style={{
-                      height: `${Math.max(sortedBarData.length * 45, 250)}px`,
+                      height: `${Math.max(
+                        currentExpensesByHierarchy.length * 50,
+                        250
+                      )}px`,
                     }}
                   >
                     <BarChart
                       accessibilityLayer
-                      data={sortedBarData}
+                      data={currentExpensesByHierarchy}
                       layout="vertical"
-                      margin={{ left: 0, right: 40, top: 0, bottom: 0 }}
+                      margin={{ left: 0, right: 50, top: 0, bottom: 0 }}
+                      stackOffset="none"
                     >
                       <CartesianGrid horizontal={false} />
                       <YAxis
-                        dataKey="name"
+                        dataKey="rootName"
                         type="category"
                         tickLine={false}
                         tickMargin={10}
                         axisLine={false}
-                        width={100}
+                        width={120}
                         className="text-xs font-medium"
                       />
                       <XAxis type="number" hide />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="value" radius={4} barSize={32}>
-                        <LabelList
-                          dataKey="value"
-                          position="right"
-                          className="fill-foreground font-bold"
-                          fontSize={12}
-                          formatter={(value: any) =>
-                            `€${Number(value).toFixed(0)}`
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(value, name) => (
+                              <span>
+                                {name}: €{Number(value).toFixed(2)}
+                              </span>
+                            )}
+                          />
+                        }
+                      />
+                      <ChartLegend content={<ChartLegendContent />} />
+                      {allChildCategories.map((childName, index) => (
+                        <Bar
+                          key={childName}
+                          dataKey={childName}
+                          stackId="stack"
+                          fill={
+                            stackedBarConfig[childName]?.color ||
+                            `hsl(var(--chart-${(index % 5) + 1}))`
+                          }
+                          radius={
+                            index === allChildCategories.length - 1
+                              ? [0, 4, 4, 0]
+                              : [0, 0, 0, 0]
                           }
                         />
-                      </Bar>
+                      ))}
                     </BarChart>
                   </ChartContainer>
                 ) : (
@@ -710,11 +1066,11 @@ export function StatisticsPage() {
                     config={{
                       current: {
                         label: t("current_month"),
-                        color: "hsl(0 84.2% 60.2%)",
+                        color: "hsl(0 84.2% 60.2% )",
                       },
                       previous: {
                         label: t("previous_month"),
-                        color: "hsl(0 84.2% 60.2% / 0.3)",
+                        color: "hsl(0 84.2% 60.2% )",
                       },
                     }}
                     className="h-[250px] w-full"
@@ -728,6 +1084,44 @@ export function StatisticsPage() {
                       }))}
                       margin={{ left: 12, right: 12, top: 12, bottom: 12 }}
                     >
+                      <defs>
+                        <linearGradient
+                          id="currentGradient"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="var(--color-current)"
+                            stopOpacity={0.8}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="var(--color-current)"
+                            stopOpacity={0.1}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="previousGradient"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="var(--color-previous)"
+                            stopOpacity={0.6}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="var(--color-previous)"
+                            stopOpacity={0.1}
+                          />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="day" />
                       <YAxis tickFormatter={(v) => `€${v}`} />
@@ -736,16 +1130,14 @@ export function StatisticsPage() {
                         type="monotone"
                         dataKey="previous"
                         stroke="var(--color-previous)"
-                        fill="var(--color-previous)"
-                        fillOpacity={0.3}
+                        fill="url(#previousGradient)"
                         strokeDasharray="5 5"
                       />
                       <Area
                         type="monotone"
                         dataKey="current"
                         stroke="var(--color-current)"
-                        fill="var(--color-current)"
-                        fillOpacity={0.3}
+                        fill="url(#currentGradient)"
                       />
                       <ChartLegend content={<ChartLegendContent />} />
                     </AreaChart>
@@ -1048,46 +1440,69 @@ export function StatisticsPage() {
               </CardContent>
             </Card>
 
-            {/* Horizontal Bar Chart - Expense Breakdown (Yearly) */}
+            {/* Horizontal Stacked Bar Chart - Expense Breakdown (Yearly) */}
             <Card className="flex flex-col min-w-0">
               <CardHeader>
                 <CardTitle>{t("expense_breakdown")}</CardTitle>
               </CardHeader>
               <CardContent className="min-w-0">
-                {sortedBarData.length > 0 ? (
+                {currentExpensesByHierarchy.length > 0 ? (
                   <ChartContainer
-                    config={{}}
-                    className="min-h-[300px] w-full max-w-[100%] overflow-hidden"
+                    config={stackedBarConfig}
+                    className="w-full max-w-[100%] overflow-hidden"
+                    style={{
+                      height: `${Math.max(
+                        currentExpensesByHierarchy.slice(0, 8).length * 50,
+                        300
+                      )}px`,
+                    }}
                   >
                     <BarChart
                       accessibilityLayer
-                      data={sortedBarData.slice(0, 8)}
+                      data={currentExpensesByHierarchy.slice(0, 8)}
                       layout="vertical"
-                      margin={{ left: 0, right: 40, top: 0, bottom: 0 }}
+                      margin={{ left: 0, right: 50, top: 0, bottom: 0 }}
+                      stackOffset="none"
                     >
                       <CartesianGrid horizontal={false} />
                       <YAxis
-                        dataKey="name"
+                        dataKey="rootName"
                         type="category"
                         tickLine={false}
                         tickMargin={10}
                         axisLine={false}
-                        width={100}
+                        width={120}
                         className="text-xs font-medium"
                       />
                       <XAxis type="number" hide />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="value" radius={4} barSize={32}>
-                        <LabelList
-                          dataKey="value"
-                          position="right"
-                          className="fill-foreground font-bold"
-                          fontSize={12}
-                          formatter={(value: any) =>
-                            `€${Number(value).toFixed(0)}`
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(value, name) => (
+                              <span>
+                                {name}: €{Number(value).toFixed(2)}
+                              </span>
+                            )}
+                          />
+                        }
+                      />
+                      <ChartLegend content={<ChartLegendContent />} />
+                      {allChildCategories.map((childName, index) => (
+                        <Bar
+                          key={childName}
+                          dataKey={childName}
+                          stackId="stack"
+                          fill={
+                            stackedBarConfig[childName]?.color ||
+                            `hsl(var(--chart-${(index % 5) + 1}))`
+                          }
+                          radius={
+                            index === allChildCategories.length - 1
+                              ? [0, 4, 4, 0]
+                              : [0, 0, 0, 0]
                           }
                         />
-                      </Bar>
+                      ))}
                     </BarChart>
                   </ChartContainer>
                 ) : (
@@ -1437,81 +1852,80 @@ export function StatisticsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {contextStats.map((ctx, index) => (
-                  <div
-                    key={ctx.id}
-                    className="border rounded-lg p-4 space-y-3"
-                  >
-                    {/* Context header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{
-                            backgroundColor: `hsl(var(--chart-${(index % 5) + 1}))`,
-                          }}
-                        />
-                        <span className="font-semibold">{ctx.name}</span>
-                      </div>
-                      <span className="text-lg font-bold">€{ctx.total}</span>
+                <div key={ctx.id} className="border rounded-lg p-4 space-y-3">
+                  {/* Context header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{
+                          backgroundColor: `hsl(var(--chart-${
+                            (index % 5) + 1
+                          }))`,
+                        }}
+                      />
+                      <span className="font-semibold">{ctx.name}</span>
                     </div>
-
-                    {/* Stats row */}
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div className="text-center p-2 bg-muted rounded">
-                        <div className="text-muted-foreground text-xs">
-                          {t("transactions")}
-                        </div>
-                        <div className="font-medium">{ctx.transactionCount}</div>
-                      </div>
-                      <div className="text-center p-2 bg-muted rounded">
-                        <div className="text-muted-foreground text-xs">
-                          {t("average")}
-                        </div>
-                        <div className="font-medium">
-                          €{ctx.avgPerTransaction}
-                        </div>
-                      </div>
-                      <div className="text-center p-2 bg-muted rounded">
-                        <div className="text-muted-foreground text-xs">
-                          {t("top_category")}
-                        </div>
-                        <div className="font-medium truncate">
-                          {ctx.topCategory || "-"}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Category breakdown - top 3 */}
-                    {ctx.categoryBreakdown.length > 1 && (
-                      <div className="space-y-1 pt-2 border-t">
-                        <div className="text-xs text-muted-foreground mb-2">
-                          {t("breakdown_by_category")}
-                        </div>
-                        {ctx.categoryBreakdown.slice(0, 3).map((cat) => (
-                          <div
-                            key={cat.name}
-                            className="flex items-center justify-between text-sm"
-                          >
-                            <span className="text-muted-foreground truncate max-w-[50%]">
-                              {cat.name}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 h-1.5 bg-muted rounded overflow-hidden">
-                                <div
-                                  className="h-full bg-primary rounded"
-                                  style={{ width: `${cat.percentage}%` }}
-                                />
-                              </div>
-                              <span className="font-medium w-16 text-right">
-                                €{cat.amount}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <span className="text-lg font-bold">€{ctx.total}</span>
                   </div>
-                ))}
+
+                  {/* Stats row */}
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div className="text-center p-2 bg-muted rounded">
+                      <div className="text-muted-foreground text-xs">
+                        {t("transactions")}
+                      </div>
+                      <div className="font-medium">{ctx.transactionCount}</div>
+                    </div>
+                    <div className="text-center p-2 bg-muted rounded">
+                      <div className="text-muted-foreground text-xs">
+                        {t("average")}
+                      </div>
+                      <div className="font-medium">
+                        €{ctx.avgPerTransaction}
+                      </div>
+                    </div>
+                    <div className="text-center p-2 bg-muted rounded">
+                      <div className="text-muted-foreground text-xs">
+                        {t("top_category")}
+                      </div>
+                      <div className="font-medium truncate">
+                        {ctx.topCategory || "-"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category breakdown - top 3 */}
+                  {ctx.categoryBreakdown.length > 1 && (
+                    <div className="space-y-1 pt-2 border-t">
+                      <div className="text-xs text-muted-foreground mb-2">
+                        {t("breakdown_by_category")}
+                      </div>
+                      {ctx.categoryBreakdown.slice(0, 3).map((cat) => (
+                        <div
+                          key={cat.name}
+                          className="flex items-center justify-between text-sm"
+                        >
+                          <span className="text-muted-foreground truncate max-w-[50%]">
+                            {cat.name}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-1.5 bg-muted rounded overflow-hidden">
+                              <div
+                                className="h-full bg-primary rounded"
+                                style={{ width: `${cat.percentage}%` }}
+                              />
+                            </div>
+                            <span className="font-medium w-16 text-right">
+                              €{cat.amount}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}

@@ -1,5 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../lib/db";
+import { db, Category } from "../lib/db";
 import { format, subMonths } from "date-fns";
 import { useMemo } from "react";
 
@@ -178,6 +178,160 @@ export function useStatistics(params?: UseStatisticsParams) {
       });
     }
     return stats;
+  }, [yearlyTransactions, categories]);
+
+  // Helper function to get root category (traverses up the parent chain)
+  const getRootCategory = (
+    categoryId: string,
+    categoryMap: Map<string, Category>
+  ): Category | undefined => {
+    const cat = categoryMap.get(categoryId);
+    if (!cat) return undefined;
+    if (!cat.parent_id) return cat; // This is already a root
+    return getRootCategory(cat.parent_id, categoryMap);
+  };
+
+  // Hierarchical expense data for stacked bar chart (monthly)
+  const monthlyExpensesByHierarchy = useMemo(() => {
+    if (!transactions || !categories) return [];
+
+    const categoryMap = new Map(categories.map((c) => [c.id, c]));
+
+    // Map: rootCategoryId -> { rootName, rootColor, children: { childName -> amount } }
+    const hierarchyMap = new Map<
+      string,
+      {
+        rootId: string;
+        rootName: string;
+        rootColor: string;
+        children: Map<string, { name: string; amount: number; color: string }>;
+        total: number;
+      }
+    >();
+
+    transactions.forEach((t) => {
+      if (t.deleted_at || t.type !== "expense" || !t.category_id) return;
+
+      const cat = categoryMap.get(t.category_id);
+      if (!cat) return;
+
+      const rootCat = getRootCategory(t.category_id, categoryMap);
+      if (!rootCat) return;
+
+      const amount = Number(t.amount);
+
+      if (!hierarchyMap.has(rootCat.id)) {
+        hierarchyMap.set(rootCat.id, {
+          rootId: rootCat.id,
+          rootName: rootCat.name,
+          rootColor: rootCat.color,
+          children: new Map(),
+          total: 0,
+        });
+      }
+
+      const entry = hierarchyMap.get(rootCat.id)!;
+      entry.total += amount;
+
+      // Use the actual category (could be root itself or a child/grandchild)
+      const childKey = cat.id;
+      if (entry.children.has(childKey)) {
+        entry.children.get(childKey)!.amount += amount;
+      } else {
+        entry.children.set(childKey, {
+          name: cat.name,
+          amount,
+          color: cat.color,
+        });
+      }
+    });
+
+    // Convert to array format suitable for stacked bar chart
+    return Array.from(hierarchyMap.values())
+      .map((entry) => ({
+        rootName: entry.rootName,
+        rootColor: entry.rootColor,
+        total: entry.total,
+        // Convert children map to object for Recharts
+        ...Object.fromEntries(
+          Array.from(entry.children.entries()).map(([, child]) => [
+            child.name,
+            child.amount,
+          ])
+        ),
+        // Keep children array for config generation
+        _children: Array.from(entry.children.values()),
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [transactions, categories]);
+
+  // Hierarchical expense data for stacked bar chart (yearly)
+  const yearlyExpensesByHierarchy = useMemo(() => {
+    if (!yearlyTransactions || !categories) return [];
+
+    const categoryMap = new Map(categories.map((c) => [c.id, c]));
+
+    const hierarchyMap = new Map<
+      string,
+      {
+        rootId: string;
+        rootName: string;
+        rootColor: string;
+        children: Map<string, { name: string; amount: number; color: string }>;
+        total: number;
+      }
+    >();
+
+    yearlyTransactions.forEach((t) => {
+      if (t.deleted_at || t.type !== "expense" || !t.category_id) return;
+
+      const cat = categoryMap.get(t.category_id);
+      if (!cat) return;
+
+      const rootCat = getRootCategory(t.category_id, categoryMap);
+      if (!rootCat) return;
+
+      const amount = Number(t.amount);
+
+      if (!hierarchyMap.has(rootCat.id)) {
+        hierarchyMap.set(rootCat.id, {
+          rootId: rootCat.id,
+          rootName: rootCat.name,
+          rootColor: rootCat.color,
+          children: new Map(),
+          total: 0,
+        });
+      }
+
+      const entry = hierarchyMap.get(rootCat.id)!;
+      entry.total += amount;
+
+      const childKey = cat.id;
+      if (entry.children.has(childKey)) {
+        entry.children.get(childKey)!.amount += amount;
+      } else {
+        entry.children.set(childKey, {
+          name: cat.name,
+          amount,
+          color: cat.color,
+        });
+      }
+    });
+
+    return Array.from(hierarchyMap.values())
+      .map((entry) => ({
+        rootName: entry.rootName,
+        rootColor: entry.rootColor,
+        total: entry.total,
+        ...Object.fromEntries(
+          Array.from(entry.children.entries()).map(([, child]) => [
+            child.name,
+            child.amount,
+          ])
+        ),
+        _children: Array.from(entry.children.values()),
+      }))
+      .sort((a, b) => b.total - a.total);
   }, [yearlyTransactions, categories]);
 
   // Calculate net balances
@@ -1163,5 +1317,8 @@ export function useStatistics(params?: UseStatisticsParams) {
     monthlyComparison,
     yearlyComparison,
     categoryComparison,
+    // Hierarchical expense data for stacked bar charts
+    monthlyExpensesByHierarchy,
+    yearlyExpensesByHierarchy,
   };
 }
