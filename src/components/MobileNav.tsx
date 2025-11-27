@@ -45,7 +45,7 @@ export function MobileNav({ navigation }: MobileNavProps) {
   };
 
   return (
-    <header className="flex items-center justify-between border-b p-2 md:hidden bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 fixed top-0 left-0 right-0 z-50">
+    <header className="flex items-center justify-between border-b p-2 pt-[max(0.5rem,env(safe-area-inset-top))] px-[max(0.5rem,env(safe-area-inset-left))] md:hidden bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 fixed top-0 left-0 right-0 z-50">
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" aria-label={t("open_menu")}>

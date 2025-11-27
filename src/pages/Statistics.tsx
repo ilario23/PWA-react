@@ -46,7 +46,15 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { useTranslation } from "react-i18next";
-import { TrendingUp, TrendingDown, Activity, AlertCircle, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  AlertCircle,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+} from "lucide-react";
 import { format } from "date-fns";
 
 export function StatisticsPage() {
@@ -517,56 +525,117 @@ export function StatisticsPage() {
             <CardHeader>
               <CardTitle>{t("period_comparison")}</CardTitle>
               <CardDescription>
-                {t("comparison_vs_previous_month", { current: selectedMonth, previous: previousMonth })}
+                {t("comparison_vs_previous_month", {
+                  current: selectedMonth,
+                  previous: previousMonth,
+                })}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 {/* Income Comparison */}
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">{t("income")}</div>
-                  <div className="text-xl font-bold">€{monthlyComparison.income.current.toFixed(0)}</div>
-                  <div className={`text-xs flex items-center gap-1 ${monthlyComparison.income.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                    {monthlyComparison.income.trend === 'up' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                  <div className="text-sm text-muted-foreground">
+                    {t("income")}
+                  </div>
+                  <div className="text-xl font-bold">
+                    €{monthlyComparison.income.current.toFixed(0)}
+                  </div>
+                  <div
+                    className={`text-xs flex items-center gap-1 ${
+                      monthlyComparison.income.trend === "up"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {monthlyComparison.income.trend === "up" ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )}
                     {Math.abs(monthlyComparison.income.change).toFixed(1)}%
                   </div>
                 </div>
                 {/* Expense Comparison */}
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">{t("expense")}</div>
-                  <div className="text-xl font-bold">€{monthlyComparison.expense.current.toFixed(0)}</div>
-                  <div className={`text-xs flex items-center gap-1 ${monthlyComparison.expense.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                    {monthlyComparison.expense.current <= monthlyComparison.expense.previous ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />}
+                  <div className="text-sm text-muted-foreground">
+                    {t("expense")}
+                  </div>
+                  <div className="text-xl font-bold">
+                    €{monthlyComparison.expense.current.toFixed(0)}
+                  </div>
+                  <div
+                    className={`text-xs flex items-center gap-1 ${
+                      monthlyComparison.expense.trend === "up"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {monthlyComparison.expense.current <=
+                    monthlyComparison.expense.previous ? (
+                      <ArrowDown className="h-3 w-3" />
+                    ) : (
+                      <ArrowUp className="h-3 w-3" />
+                    )}
                     {Math.abs(monthlyComparison.expense.change).toFixed(1)}%
                   </div>
                 </div>
                 {/* Balance Comparison */}
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">{t("balance")}</div>
-                  <div className={`text-xl font-bold ${monthlyComparison.balance.current >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  <div className="text-sm text-muted-foreground">
+                    {t("balance")}
+                  </div>
+                  <div
+                    className={`text-xl font-bold ${
+                      monthlyComparison.balance.current >= 0
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
                     €{monthlyComparison.balance.current.toFixed(0)}
                   </div>
-                  <div className={`text-xs flex items-center gap-1 ${monthlyComparison.balance.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                    {monthlyComparison.balance.trend === 'up' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                  <div
+                    className={`text-xs flex items-center gap-1 ${
+                      monthlyComparison.balance.trend === "up"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {monthlyComparison.balance.trend === "up" ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )}
                     {Math.abs(monthlyComparison.balance.change).toFixed(1)}%
                   </div>
                 </div>
                 {/* Saving Rate Comparison */}
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">{t("saving_rate")}</div>
-                  <div className={`text-xl font-bold ${monthlyComparison.savingRate.current >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  <div className="text-sm text-muted-foreground">
+                    {t("saving_rate")}
+                  </div>
+                  <div
+                    className={`text-xl font-bold ${
+                      monthlyComparison.savingRate.current >= 0
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
                     {monthlyComparison.savingRate.current.toFixed(1)}%
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {t("previous")}: {monthlyComparison.savingRate.previous.toFixed(1)}%
+                    {t("previous")}:{" "}
+                    {monthlyComparison.savingRate.previous.toFixed(1)}%
                   </div>
                 </div>
               </div>
-              
+
               {/* Cumulative Expense Comparison Chart */}
               {dailyCumulativeExpenses.length > 0 && (
                 <div className="mt-6">
-                  <h4 className="text-sm font-medium mb-4">{t("cumulative_expenses_comparison")}</h4>
+                  <h4 className="text-sm font-medium mb-4">
+                    {t("cumulative_expenses_comparison")}
+                  </h4>
                   <ChartContainer
                     config={{
                       current: {
@@ -584,7 +653,8 @@ export function StatisticsPage() {
                       data={dailyCumulativeExpenses.map((d, i) => ({
                         day: d.day,
                         current: d.cumulative,
-                        previous: previousMonthCumulativeExpenses[i]?.cumulative || 0,
+                        previous:
+                          previousMonthCumulativeExpenses[i]?.cumulative || 0,
                       }))}
                       margin={{ left: 12, right: 12, top: 12, bottom: 12 }}
                     >
@@ -620,12 +690,17 @@ export function StatisticsPage() {
             <Card className="min-w-0">
               <CardHeader>
                 <CardTitle>{t("category_comparison")}</CardTitle>
-                <CardDescription>{t("category_comparison_desc")}</CardDescription>
+                <CardDescription>
+                  {t("category_comparison_desc")}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {categoryComparison.slice(0, 8).map((cat) => (
-                    <div key={cat.name} className="flex items-center justify-between">
+                    <div
+                      key={cat.name}
+                      className="flex items-center justify-between"
+                    >
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">{cat.name}</span>
                       </div>
@@ -633,8 +708,18 @@ export function StatisticsPage() {
                         <span className="text-sm text-muted-foreground">
                           €{cat.previous.toFixed(0)} → €{cat.current.toFixed(0)}
                         </span>
-                        <div className={`flex items-center gap-1 text-sm ${cat.trend === 'improved' ? 'text-green-500' : 'text-red-500'}`}>
-                          {cat.trend === 'improved' ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />}
+                        <div
+                          className={`flex items-center gap-1 text-sm ${
+                            cat.trend === "improved"
+                              ? "text-green-500"
+                              : "text-red-500"
+                          }`}
+                        >
+                          {cat.trend === "improved" ? (
+                            <ArrowDown className="h-3 w-3" />
+                          ) : (
+                            <ArrowUp className="h-3 w-3" />
+                          )}
                           {Math.abs(cat.change).toFixed(0)}%
                         </div>
                       </div>
@@ -889,48 +974,107 @@ export function StatisticsPage() {
             <CardHeader>
               <CardTitle>{t("yearly_comparison")}</CardTitle>
               <CardDescription>
-                {t("comparison_vs_previous_year", { current: selectedYear, previous: previousYear })}
+                {t("comparison_vs_previous_year", {
+                  current: selectedYear,
+                  previous: previousYear,
+                })}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 {/* Income Comparison */}
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">{t("income")}</div>
-                  <div className="text-xl font-bold">€{yearlyComparison.income.current.toFixed(0)}</div>
-                  <div className={`text-xs flex items-center gap-1 ${yearlyComparison.income.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                    {yearlyComparison.income.trend === 'up' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                  <div className="text-sm text-muted-foreground">
+                    {t("income")}
+                  </div>
+                  <div className="text-xl font-bold">
+                    €{yearlyComparison.income.current.toFixed(0)}
+                  </div>
+                  <div
+                    className={`text-xs flex items-center gap-1 ${
+                      yearlyComparison.income.trend === "up"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {yearlyComparison.income.trend === "up" ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )}
                     {Math.abs(yearlyComparison.income.change).toFixed(1)}%
                   </div>
                 </div>
                 {/* Expense Comparison */}
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">{t("expense")}</div>
-                  <div className="text-xl font-bold">€{yearlyComparison.expense.current.toFixed(0)}</div>
-                  <div className={`text-xs flex items-center gap-1 ${yearlyComparison.expense.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                    {yearlyComparison.expense.current <= yearlyComparison.expense.previous ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />}
+                  <div className="text-sm text-muted-foreground">
+                    {t("expense")}
+                  </div>
+                  <div className="text-xl font-bold">
+                    €{yearlyComparison.expense.current.toFixed(0)}
+                  </div>
+                  <div
+                    className={`text-xs flex items-center gap-1 ${
+                      yearlyComparison.expense.trend === "up"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {yearlyComparison.expense.current <=
+                    yearlyComparison.expense.previous ? (
+                      <ArrowDown className="h-3 w-3" />
+                    ) : (
+                      <ArrowUp className="h-3 w-3" />
+                    )}
                     {Math.abs(yearlyComparison.expense.change).toFixed(1)}%
                   </div>
                 </div>
                 {/* Balance Comparison */}
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">{t("balance")}</div>
-                  <div className={`text-xl font-bold ${yearlyComparison.balance.current >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  <div className="text-sm text-muted-foreground">
+                    {t("balance")}
+                  </div>
+                  <div
+                    className={`text-xl font-bold ${
+                      yearlyComparison.balance.current >= 0
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
                     €{yearlyComparison.balance.current.toFixed(0)}
                   </div>
-                  <div className={`text-xs flex items-center gap-1 ${yearlyComparison.balance.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                    {yearlyComparison.balance.trend === 'up' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                  <div
+                    className={`text-xs flex items-center gap-1 ${
+                      yearlyComparison.balance.trend === "up"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {yearlyComparison.balance.trend === "up" ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )}
                     {Math.abs(yearlyComparison.balance.change).toFixed(1)}%
                   </div>
                 </div>
                 {/* Saving Rate Comparison */}
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">{t("saving_rate")}</div>
-                  <div className={`text-xl font-bold ${yearlyComparison.savingRate.current >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  <div className="text-sm text-muted-foreground">
+                    {t("saving_rate")}
+                  </div>
+                  <div
+                    className={`text-xl font-bold ${
+                      yearlyComparison.savingRate.current >= 0
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
                     {yearlyComparison.savingRate.current.toFixed(1)}%
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {t("previous")}: {yearlyComparison.savingRate.previous.toFixed(1)}%
+                    {t("previous")}:{" "}
+                    {yearlyComparison.savingRate.previous.toFixed(1)}%
                   </div>
                 </div>
               </div>
@@ -938,7 +1082,9 @@ export function StatisticsPage() {
               {/* Cumulative Expense Comparison Chart - Yearly */}
               {yearlyCumulativeExpenses.length > 0 && (
                 <div className="mt-6">
-                  <h4 className="text-sm font-medium mb-4">{t("cumulative_expenses_yearly")}</h4>
+                  <h4 className="text-sm font-medium mb-4">
+                    {t("cumulative_expenses_yearly")}
+                  </h4>
                   <ChartContainer
                     config={{
                       current: {
@@ -956,7 +1102,8 @@ export function StatisticsPage() {
                       data={yearlyCumulativeExpenses.map((d, i) => ({
                         month: d.month,
                         current: d.cumulative,
-                        previous: previousYearCumulativeExpenses[i]?.cumulative || 0,
+                        previous:
+                          previousYearCumulativeExpenses[i]?.cumulative || 0,
                       }))}
                       margin={{ left: 12, right: 12, top: 12, bottom: 12 }}
                     >

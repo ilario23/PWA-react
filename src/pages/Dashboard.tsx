@@ -2,7 +2,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -142,67 +141,7 @@ export function Dashboard() {
       {/* Mobile Summary Stats - Horizontal scroll with compact cards */}
       <div className="md:hidden -mx-4 px-4">
         <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
-          {/* Balance Card */}
-          <div className="snap-start shrink-0 w-[140px]">
-            <div
-              className={`relative overflow-hidden rounded-xl p-3 h-[90px] ${
-                balance >= 0
-                  ? "bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20"
-                  : "bg-gradient-to-br from-red-500/10 via-red-500/5 to-transparent border border-red-500/20"
-              }`}
-            >
-              <div className="flex items-center gap-1.5 mb-1">
-                <div
-                  className={`p-1 rounded-md ${
-                    balance >= 0
-                      ? "bg-emerald-500/20 text-emerald-600"
-                      : "bg-red-500/20 text-red-600"
-                  }`}
-                >
-                  <PiggyBank className="h-3.5 w-3.5" />
-                </div>
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("total_balance")}
-                </span>
-              </div>
-              <p
-                className={`text-xl font-bold tracking-tight ${
-                  balance >= 0 ? "text-emerald-600" : "text-red-600"
-                }`}
-              >
-                €{Math.abs(balance).toFixed(0)}
-              </p>
-              <div
-                className={`absolute -right-3 -bottom-3 opacity-[0.07] ${
-                  balance >= 0 ? "text-emerald-500" : "text-red-500"
-                }`}
-              >
-                <PiggyBank className="h-16 w-16" />
-              </div>
-            </div>
-          </div>
-
-          {/* Income Card */}
-          <div className="snap-start shrink-0 w-[140px]">
-            <div className="relative overflow-hidden rounded-xl p-3 h-[90px] bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border border-green-500/20">
-              <div className="flex items-center gap-1.5 mb-1">
-                <div className="p-1 rounded-md bg-green-500/20 text-green-600">
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </div>
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("income")}
-                </span>
-              </div>
-              <p className="text-xl font-bold tracking-tight text-green-600">
-                +€{totalIncome.toFixed(0)}
-              </p>
-              <div className="absolute -right-3 -bottom-3 opacity-[0.07] text-green-500">
-                <TrendingUp className="h-16 w-16" />
-              </div>
-            </div>
-          </div>
-
-          {/* Expense Card */}
+          {/* Expense Card - First */}
           <div className="snap-start shrink-0 w-[140px]">
             <div className="relative overflow-hidden rounded-xl p-3 h-[90px] bg-gradient-to-br from-red-500/10 via-red-500/5 to-transparent border border-red-500/20">
               <div className="flex items-center gap-1.5 mb-1">
@@ -222,7 +161,7 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Budget Card (if set) */}
+          {/* Budget Card (if set) - Second */}
           {monthlyBudget && (
             <div className="snap-start shrink-0 w-[160px]">
               <div
@@ -295,9 +234,68 @@ export function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* Income Card - Third */}
+          <div className="snap-start shrink-0 w-[140px]">
+            <div className="relative overflow-hidden rounded-xl p-3 h-[90px] bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border border-green-500/20">
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className="p-1 rounded-md bg-green-500/20 text-green-600">
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("income")}
+                </span>
+              </div>
+              <p className="text-xl font-bold tracking-tight text-green-600">
+                +€{totalIncome.toFixed(0)}
+              </p>
+              <div className="absolute -right-3 -bottom-3 opacity-[0.07] text-green-500">
+                <TrendingUp className="h-16 w-16" />
+              </div>
+            </div>
+          </div>
+
+          {/* Balance Card - Fourth */}
+          <div className="snap-start shrink-0 w-[140px]">
+            <div
+              className={`relative overflow-hidden rounded-xl p-3 h-[90px] ${
+                balance >= 0
+                  ? "bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20"
+                  : "bg-gradient-to-br from-red-500/10 via-red-500/5 to-transparent border border-red-500/20"
+              }`}
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <div
+                  className={`p-1 rounded-md ${
+                    balance >= 0
+                      ? "bg-emerald-500/20 text-emerald-600"
+                      : "bg-red-500/20 text-red-600"
+                  }`}
+                >
+                  <PiggyBank className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("total_balance")}
+                </span>
+              </div>
+              <p
+                className={`text-xl font-bold tracking-tight ${
+                  balance >= 0 ? "text-emerald-600" : "text-red-600"
+                }`}
+              >
+                €{Math.abs(balance).toFixed(0)}
+              </p>
+              <div
+                className={`absolute -right-3 -bottom-3 opacity-[0.07] ${
+                  balance >= 0 ? "text-emerald-500" : "text-red-500"
+                }`}
+              >
+                <PiggyBank className="h-16 w-16" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
       {/* Chart and Summary Cards Layout */}
       <div className="grid gap-4 md:grid-cols-[1fr_auto]">
         {/* Cumulative Expenses Chart */}
@@ -357,19 +355,6 @@ export function Dashboard() {
               </div>
             )}
           </CardContent>
-          <CardFooter>
-            <div className="flex w-full items-start gap-2 text-sm">
-              <div className="grid gap-2">
-                <div className="flex items-center gap-2 font-medium leading-none">
-                  {t("total_expenses_this_month")}{" "}
-                  <TrendingUp className="h-4 w-4" />
-                </div>
-                <div className="flex items-center gap-2 leading-none text-muted-foreground">
-                  €{totalExpense.toFixed(2)}
-                </div>
-              </div>
-            </div>
-          </CardFooter>
         </Card>
 
         {/* Summary Cards - Hidden on mobile, stacked vertically on desktop */}
@@ -377,16 +362,12 @@ export function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {t("total_balance")}
+                {t("total_expenses")}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div
-                className={`text-2xl font-bold ${
-                  balance >= 0 ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                €{balance.toFixed(2)}
+              <div className="text-2xl font-bold text-red-600">
+                -€{totalExpense.toFixed(2)}
               </div>
             </CardContent>
           </Card>
@@ -405,12 +386,16 @@ export function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {t("total_expenses")}
+                {t("total_balance")}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                -€{totalExpense.toFixed(2)}
+              <div
+                className={`text-2xl font-bold ${
+                  balance >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                €{balance.toFixed(2)}
               </div>
             </CardContent>
           </Card>
@@ -492,7 +477,7 @@ export function Dashboard() {
       {/* Floating Action Button - Mobile Only */}
       <Button
         onClick={() => setIsDialogOpen(true)}
-        className="md:hidden fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        className="md:hidden fixed bottom-[max(1.5rem,calc(env(safe-area-inset-bottom)+0.5rem))] right-6 h-14 w-14 rounded-full shadow-lg z-50"
         size="icon"
       >
         <Plus className="h-6 w-6" />

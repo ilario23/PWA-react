@@ -21,8 +21,28 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
+        display_override: ['standalone', 'minimal-ui'],
+        orientation: 'portrait',
         scope: '/',
         start_url: '/',
+        id: '/',
+        categories: ['finance', 'productivity', 'utilities'],
+        shortcuts: [
+          {
+            name: 'Add Transaction',
+            short_name: 'Add',
+            description: 'Quickly add a new transaction',
+            url: '/?action=add',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+          },
+          {
+            name: 'Statistics',
+            short_name: 'Stats',
+            description: 'View your spending statistics',
+            url: '/statistics',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+          }
+        ],
         icons: [
           {
             src: 'pwa-192x192.png',
