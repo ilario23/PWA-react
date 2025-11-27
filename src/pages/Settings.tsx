@@ -82,7 +82,8 @@ export function SettingsPage() {
     setMounted(true);
   }, []);
 
-  const isSyncing = autoSyncing || onlineSyncing || manualSyncing || fullSyncing;
+  const isSyncing =
+    autoSyncing || onlineSyncing || manualSyncing || fullSyncing;
 
   const handleManualSync = async () => {
     setManualSyncing(true);
@@ -337,7 +338,9 @@ export function SettingsPage() {
                   variant="outline"
                 >
                   <RefreshCw
-                    className={`mr-2 h-4 w-4 ${manualSyncing ? "animate-spin" : ""}`}
+                    className={`mr-2 h-4 w-4 ${
+                      manualSyncing ? "animate-spin" : ""
+                    }`}
                   />
                   {t("sync_now")}
                 </Button>
@@ -346,17 +349,22 @@ export function SettingsPage() {
                   disabled={isSyncing || !isOnline}
                   size="sm"
                   variant="secondary"
-                  title={t("full_sync_desc") || "Re-download all data from server"}
+                  title={
+                    t("full_sync_desc") || "Re-download all data from server"
+                  }
                 >
                   <RefreshCw
-                    className={`mr-2 h-4 w-4 ${fullSyncing ? "animate-spin" : ""}`}
+                    className={`mr-2 h-4 w-4 ${
+                      fullSyncing ? "animate-spin" : ""
+                    }`}
                   />
                   {t("full_sync") || "Full Sync"}
                 </Button>
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              {t("full_sync_hint") || "Use 'Full Sync' if data seems out of sync after direct database changes."}
+              {t("full_sync_hint") ||
+                "Use 'Full Sync' if data seems out of sync after direct database changes."}
             </p>
           </CardContent>
         </Card>

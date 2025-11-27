@@ -471,9 +471,7 @@ export class SyncManager {
           continue;
         }
 
-        console.log(
-          `[Sync] Full pull: ${data.length} items from ${tableName}`
-        );
+        console.log(`[Sync] Full pull: ${data.length} items from ${tableName}`);
 
         await db.transaction("rw", db.table(tableName), async () => {
           for (const item of data) {

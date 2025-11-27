@@ -199,7 +199,10 @@ export default defineConfig({
           if (id.includes("node_modules/recharts")) {
             return "charts";
           }
-          if (id.includes("node_modules/d3-") || id.includes("node_modules/victory-vendor")) {
+          if (
+            id.includes("node_modules/d3-") ||
+            id.includes("node_modules/victory-vendor")
+          ) {
             return "charts-d3";
           }
           // Supabase
@@ -211,7 +214,10 @@ export default defineConfig({
             return "database";
           }
           // i18n
-          if (id.includes("node_modules/i18next") || id.includes("node_modules/react-i18next")) {
+          if (
+            id.includes("node_modules/i18next") ||
+            id.includes("node_modules/react-i18next")
+          ) {
             return "i18n";
           }
           // Date utilities
