@@ -210,64 +210,6 @@ export class SyncManager {
       }
     }
   }
-
-  /**
-   * Handle a single record from Realtime
-   * This is called by useRealtimeSync when events come in
-   */
-  async handleRealtimeRecord(
-    tableName: TableName,
-    record: Record<string, any>,
-    eventType: "INSERT" | "UPDATE" | "DELETE"
-  ): Promise<void> {
-    const table = db.table(tableName);
-
-    try {
-      if (eventType === "DELETE") {
-        // For soft deletes, mark as deleted
-        if (record?.id) {
-          const existing = await table.get(record.id);
-          if (existing) {
-            await table.update(record.id, {
-              deleted_at: new Date().toISOString(),
-              pendingSync: 0,
-            });
-          }
-        }
-        return;
-      }
-
-      if (!record?.id) return;
-
-      // Check for conflict
-      const existing = await table.get(record.id);
-      if (existing?.pendingSync === 1) {
-        const localTime = existing.updated_at
-          ? new Date(existing.updated_at).getTime()
-          : 0;
-        const remoteTime = record.updated_at
-          ? new Date(record.updated_at).getTime()
-          : 0;
-
-        if (localTime >= remoteTime) {
-          console.log(
-            `[Sync] Skipping realtime ${tableName} ${record.id} - local is newer`
-          );
-          return;
-        }
-      }
-
-      // Prepare record for local storage
-      const localRecord: Record<string, any> = { ...record, pendingSync: 0 };
-      if (tableName === "transactions" && record.date) {
-        localRecord.year_month = record.date.substring(0, 7);
-      }
-
-      await table.put(localRecord);
-    } catch (error) {
-      console.error(`[Sync] Error handling realtime ${tableName}:`, error);
-    }
-  }
 }
 
 export const syncManager = new SyncManager();

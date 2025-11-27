@@ -7,4 +7,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
+    realtime: {
+        params: {
+            eventsPerSecond: 10,
+        },
+    },
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+    },
+});

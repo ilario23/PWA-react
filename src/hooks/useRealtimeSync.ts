@@ -15,6 +15,7 @@ const REALTIME_TABLES = [
   "categories",
   "contexts",
   "recurring_transactions",
+  "category_budgets",
 ] as const;
 
 type RealtimeTable = (typeof REALTIME_TABLES)[number];
@@ -25,6 +26,10 @@ interface RealtimeEvent {
   new: Record<string, any>;
   old: Record<string, any>;
 }
+
+// Retry configuration
+const MAX_RETRY_ATTEMPTS = 5;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
 
 /**
  * Hook that manages Supabase Realtime subscriptions.
@@ -37,6 +42,9 @@ interface RealtimeEvent {
 export function useRealtimeSync() {
   const { user } = useAuth();
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const retryCountRef = useRef(0);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<RealtimeEvent | null>(null);
 
@@ -137,6 +145,7 @@ export function useRealtimeSync() {
 
   /**
    * Subscribe to Realtime changes for all tables
+   * Includes exponential backoff retry logic
    */
   const subscribe = useCallback(() => {
     if (!user || channelRef.current) return;
@@ -144,7 +153,12 @@ export function useRealtimeSync() {
     console.log("[Realtime] Subscribing to changes...");
 
     // Create a single channel for all table subscriptions
-    const channel = supabase.channel("db-changes");
+    const channel = supabase.channel("db-changes", {
+      config: {
+        broadcast: { self: false },
+        presence: { key: user.id },
+      },
+    });
 
     // Subscribe to each table
     for (const table of REALTIME_TABLES) {
@@ -162,14 +176,31 @@ export function useRealtimeSync() {
     // Start the subscription
     channel.subscribe((status) => {
       console.log(`[Realtime] Subscription status: ${status}`);
-      setIsConnected(status === "SUBSCRIBED");
 
       if (status === "SUBSCRIBED") {
+        setIsConnected(true);
+        retryCountRef.current = 0; // Reset retry count on success
         console.log("[Realtime] Successfully subscribed to all tables");
-      } else if (status === "CHANNEL_ERROR") {
-        console.error("[Realtime] Channel error - will retry");
-      } else if (status === "TIMED_OUT") {
-        console.error("[Realtime] Connection timed out");
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        setIsConnected(false);
+        console.error(`[Realtime] ${status} - will retry with backoff`);
+        
+        // Exponential backoff retry
+        if (retryCountRef.current < MAX_RETRY_ATTEMPTS) {
+          const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCountRef.current);
+          retryCountRef.current++;
+          console.log(`[Realtime] Retry ${retryCountRef.current}/${MAX_RETRY_ATTEMPTS} in ${delay}ms`);
+          
+          retryTimeoutRef.current = setTimeout(async () => {
+            await supabase.removeChannel(channel);
+            channelRef.current = null;
+            subscribe();
+          }, delay);
+        } else {
+          console.error("[Realtime] Max retry attempts reached");
+        }
+      } else if (status === "CLOSED") {
+        setIsConnected(false);
       }
     });
 
@@ -180,6 +211,16 @@ export function useRealtimeSync() {
    * Unsubscribe from Realtime
    */
   const unsubscribe = useCallback(async () => {
+    // Clear any pending timeouts
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    
     if (channelRef.current) {
       console.log("[Realtime] Unsubscribing...");
       await supabase.removeChannel(channelRef.current);
@@ -189,12 +230,19 @@ export function useRealtimeSync() {
   }, []);
 
   /**
-   * Reconnect (unsubscribe + subscribe)
+   * Reconnect (unsubscribe + subscribe) with debounce
    */
   const reconnect = useCallback(async () => {
+    // Debounce: clear any pending reconnect
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    
     await unsubscribe();
-    // Small delay before reconnecting
-    setTimeout(() => {
+    retryCountRef.current = 0; // Reset retry count for fresh reconnect
+    
+    // Debounced delay before reconnecting
+    reconnectTimeoutRef.current = setTimeout(() => {
       subscribe();
     }, 1000);
   }, [subscribe, unsubscribe]);

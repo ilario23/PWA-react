@@ -488,107 +488,114 @@ export function CategoriesPage() {
           </div>
         ) : (
           categories.map((c, index) => {
-          const budgetInfo =
-            c.type === "expense" ? getCategoryBudgetInfo(c.id) : null;
-          return (
-            <div
-              key={c.id}
-              className={`rounded-lg border bg-card p-4 shadow-sm ${index < 20 ? "animate-slide-in-up opacity-0 fill-mode-forwards" : ""}`}
-              style={index < 20 ? { animationDelay: `${index * 0.05}s` } : {}}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="h-8 w-8 rounded-full flex items-center justify-center text-white"
-                    style={{ backgroundColor: c.color }}
-                  >
-                    {c.icon &&
-                      (() => {
-                        const IconComp = getIconComponent(c.icon);
-                        return IconComp ? (
-                          <IconComp className="h-4 w-4" />
-                        ) : null;
-                      })()}
-                  </div>
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      {c.name}
-                      <SyncStatusBadge isPending={c.pendingSync === 1} />
-                      {c.active === 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          {t("inactive") || "Inactive"}
-                        </Badge>
-                      )}
+            const budgetInfo =
+              c.type === "expense" ? getCategoryBudgetInfo(c.id) : null;
+            return (
+              <div
+                key={c.id}
+                className={`rounded-lg border bg-card p-4 shadow-sm ${
+                  index < 20
+                    ? "animate-slide-in-up opacity-0 fill-mode-forwards"
+                    : ""
+                }`}
+                style={index < 20 ? { animationDelay: `${index * 0.05}s` } : {}}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="h-8 w-8 rounded-full flex items-center justify-center text-white"
+                      style={{ backgroundColor: c.color }}
+                    >
+                      {c.icon &&
+                        (() => {
+                          const IconComp = getIconComponent(c.icon);
+                          return IconComp ? (
+                            <IconComp className="h-4 w-4" />
+                          ) : null;
+                        })()}
                     </div>
-                    <div className="text-sm text-muted-foreground capitalize">
-                      {t(c.type)}
+                    <div>
+                      <div className="font-medium flex items-center gap-2">
+                        {c.name}
+                        <SyncStatusBadge isPending={c.pendingSync === 1} />
+                        {c.active === 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            {t("inactive") || "Inactive"}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground capitalize">
+                        {t(c.type)}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex gap-1">
-                  {c.type === "expense" && (
+                  <div className="flex gap-1">
+                    {c.type === "expense" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleOpenBudgetDialog(c.id)}
+                      >
+                        <Target
+                          className={`h-4 w-4 ${
+                            budgetInfo ? "text-primary" : ""
+                          }`}
+                        />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => handleOpenBudgetDialog(c.id)}
+                      onClick={() => handleEdit(c)}
                     >
-                      <Target
-                        className={`h-4 w-4 ${budgetInfo ? "text-primary" : ""}`}
-                      />
+                      <Edit className="h-4 w-4" />
                     </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleEdit(c)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleDeleteClick(c.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-              {/* Budget progress bar for mobile */}
-              {budgetInfo && (
-                <div className="mt-3 space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>
-                      {t("budget")}: {budgetInfo.amount.toFixed(2)}
-                    </span>
-                    <span
-                      className={
-                        budgetInfo.percentage > 100 ? "text-destructive" : ""
-                      }
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleDeleteClick(c.id)}
                     >
-                      {budgetInfo.spent.toFixed(2)} (
-                      {budgetInfo.percentage.toFixed(0)}%)
-                    </span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full transition-all ${
-                        budgetInfo.percentage > 100
-                          ? "bg-destructive"
-                          : budgetInfo.percentage > 80
-                          ? "bg-yellow-500"
-                          : "bg-primary"
-                      }`}
-                      style={{
-                        width: `${Math.min(budgetInfo.percentage, 100)}%`,
-                      }}
-                    />
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
                   </div>
                 </div>
-              )}
-            </div>
-          );
+                {/* Budget progress bar for mobile */}
+                {budgetInfo && (
+                  <div className="mt-3 space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>
+                        {t("budget")}: {budgetInfo.amount.toFixed(2)}
+                      </span>
+                      <span
+                        className={
+                          budgetInfo.percentage > 100 ? "text-destructive" : ""
+                        }
+                      >
+                        {budgetInfo.spent.toFixed(2)} (
+                        {budgetInfo.percentage.toFixed(0)}%)
+                      </span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all ${
+                          budgetInfo.percentage > 100
+                            ? "bg-destructive"
+                            : budgetInfo.percentage > 80
+                            ? "bg-yellow-500"
+                            : "bg-primary"
+                        }`}
+                        style={{
+                          width: `${Math.min(budgetInfo.percentage, 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
           })
         )}
       </div>
@@ -606,161 +613,169 @@ export function CategoriesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!categories ? (
-              // Skeleton loading state for desktop
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow
-                  key={i}
-                  className="animate-slide-in-up opacity-0 fill-mode-forwards"
-                  style={{ animationDelay: `${i * 0.03}s` }}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-4 w-4 rounded-full" />
-                      <Skeleton className="h-4 w-4" />
-                      <Skeleton className="h-4 w-24" />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-16" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-20" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-5 w-16 rounded-full" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-2">
-                      <Skeleton className="h-8 w-8 rounded-md" />
-                      <Skeleton className="h-8 w-8 rounded-md" />
-                      <Skeleton className="h-8 w-8 rounded-md" />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              categories.map((c, index) => {
-              const budgetInfo =
-                c.type === "expense" ? getCategoryBudgetInfo(c.id) : null;
-              return (
-                <TableRow
-                  key={c.id}
-                  className={`${index < 20 ? "animate-slide-in-up opacity-0 fill-mode-forwards" : ""}`}
-                  style={index < 20 ? { animationDelay: `${index * 0.03}s` } : {}}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-4 w-4 rounded-full"
-                        style={{ backgroundColor: c.color }}
-                      />
-                      {c.icon &&
-                        (() => {
-                          const IconComp = getIconComponent(c.icon);
-                          return IconComp ? (
-                            <IconComp className="h-4 w-4" />
-                          ) : null;
-                        })()}
-                      {c.name}
-                      <SyncStatusBadge isPending={c.pendingSync === 1} />
-                    </div>
-                  </TableCell>
-                  <TableCell className="capitalize">{t(c.type)}</TableCell>
-                  <TableCell>
-                    {c.type === "expense" ? (
-                      budgetInfo ? (
-                        <div className="space-y-1 min-w-[120px]">
-                          <div className="flex justify-between text-xs">
-                            <span>
-                              {budgetInfo.spent.toFixed(0)} /{" "}
-                              {budgetInfo.amount.toFixed(0)}
-                            </span>
-                            <span
-                              className={
-                                budgetInfo.percentage > 100
-                                  ? "text-destructive"
-                                  : ""
-                              }
-                            >
-                              {budgetInfo.percentage.toFixed(0)}%
-                            </span>
-                          </div>
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={`h-full transition-all ${
-                                budgetInfo.percentage > 100
-                                  ? "bg-destructive"
-                                  : budgetInfo.percentage > 80
-                                  ? "bg-yellow-500"
-                                  : "bg-primary"
-                              }`}
-                              style={{
-                                width: `${Math.min(
-                                  budgetInfo.percentage,
-                                  100
-                                )}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">-</span>
-                      )
-                    ) : (
-                      <span className="text-muted-foreground text-sm">N/A</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {c.active === 0 ? (
-                      <Badge variant="secondary">
-                        {t("inactive") || "Inactive"}
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="text-green-600 border-green-600"
-                      >
-                        {t("active") || "Active"}
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-2">
-                      {c.type === "expense" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenBudgetDialog(c.id)}
-                          title={t("set_budget")}
-                        >
-                          <Target
-                            className={`h-4 w-4 ${
-                              budgetInfo ? "text-primary" : ""
-                            }`}
+            {!categories
+              ? // Skeleton loading state for desktop
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow
+                    key={i}
+                    className="animate-slide-in-up opacity-0 fill-mode-forwards"
+                    style={{ animationDelay: `${i * 0.03}s` }}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-4 rounded-full" />
+                        <Skeleton className="h-4 w-4" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-16" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-2">
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              : categories.map((c, index) => {
+                  const budgetInfo =
+                    c.type === "expense" ? getCategoryBudgetInfo(c.id) : null;
+                  return (
+                    <TableRow
+                      key={c.id}
+                      className={`${
+                        index < 20
+                          ? "animate-slide-in-up opacity-0 fill-mode-forwards"
+                          : ""
+                      }`}
+                      style={
+                        index < 20 ? { animationDelay: `${index * 0.03}s` } : {}
+                      }
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-4 w-4 rounded-full"
+                            style={{ backgroundColor: c.color }}
                           />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(c)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteClick(c.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-              })
-            )}
+                          {c.icon &&
+                            (() => {
+                              const IconComp = getIconComponent(c.icon);
+                              return IconComp ? (
+                                <IconComp className="h-4 w-4" />
+                              ) : null;
+                            })()}
+                          {c.name}
+                          <SyncStatusBadge isPending={c.pendingSync === 1} />
+                        </div>
+                      </TableCell>
+                      <TableCell className="capitalize">{t(c.type)}</TableCell>
+                      <TableCell>
+                        {c.type === "expense" ? (
+                          budgetInfo ? (
+                            <div className="space-y-1 min-w-[120px]">
+                              <div className="flex justify-between text-xs">
+                                <span>
+                                  {budgetInfo.spent.toFixed(0)} /{" "}
+                                  {budgetInfo.amount.toFixed(0)}
+                                </span>
+                                <span
+                                  className={
+                                    budgetInfo.percentage > 100
+                                      ? "text-destructive"
+                                      : ""
+                                  }
+                                >
+                                  {budgetInfo.percentage.toFixed(0)}%
+                                </span>
+                              </div>
+                              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full transition-all ${
+                                    budgetInfo.percentage > 100
+                                      ? "bg-destructive"
+                                      : budgetInfo.percentage > 80
+                                      ? "bg-yellow-500"
+                                      : "bg-primary"
+                                  }`}
+                                  style={{
+                                    width: `${Math.min(
+                                      budgetInfo.percentage,
+                                      100
+                                    )}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">
+                              -
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground text-sm">
+                            N/A
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {c.active === 0 ? (
+                          <Badge variant="secondary">
+                            {t("inactive") || "Inactive"}
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="text-green-600 border-green-600"
+                          >
+                            {t("active") || "Active"}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
+                          {c.type === "expense" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenBudgetDialog(c.id)}
+                              title={t("set_budget")}
+                            >
+                              <Target
+                                className={`h-4 w-4 ${
+                                  budgetInfo ? "text-primary" : ""
+                                }`}
+                              />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(c)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteClick(c.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
           </TableBody>
         </Table>
       </div>
