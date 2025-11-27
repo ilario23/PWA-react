@@ -575,27 +575,30 @@ export function StatisticsPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Select
-                      value={comparisonMonth?.split("-")[0] || selectedYear}
-                      onValueChange={(year) => {
-                        const month =
-                          comparisonMonth?.split("-")[1] ||
-                          selectedMonth.split("-")[1];
-                        setComparisonMonth(`${year}-${month}`);
-                      }}
-                      disabled={!comparisonMonth}
-                    >
-                      <SelectTrigger className="w-[100px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {years.map((year) => (
-                          <SelectItem key={year} value={year}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {comparisonMonth ? (
+                      <Select
+                        value={comparisonMonth.split("-")[0]}
+                        onValueChange={(year) => {
+                          const month = comparisonMonth.split("-")[1];
+                          setComparisonMonth(`${year}-${month}`);
+                        }}
+                      >
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {years.map((year) => (
+                            <SelectItem key={year} value={year}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex items-center justify-center px-3 h-10 w-[100px] rounded-md border bg-muted text-sm font-medium text-muted-foreground">
+                        {selectedYear}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -762,6 +765,66 @@ export function StatisticsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Comparison month selector for categories */}
+                <div className="flex flex-wrap gap-4 mb-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium">
+                      {t("compare_with")}
+                    </label>
+                    <div className="flex gap-2">
+                      <Select
+                        value={comparisonMonth?.split("-")[1] || "auto"}
+                        onValueChange={(value) => {
+                          if (value === "auto") {
+                            setComparisonMonth(undefined);
+                          } else {
+                            const year =
+                              comparisonMonth?.split("-")[0] || selectedYear;
+                            setComparisonMonth(`${year}-${value}`);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue placeholder={t("previous_month")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">
+                            {t("previous_month")}
+                          </SelectItem>
+                          {months.map((month) => (
+                            <SelectItem key={month.value} value={month.value}>
+                              {month.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {comparisonMonth ? (
+                        <Select
+                          value={comparisonMonth.split("-")[0]}
+                          onValueChange={(year) => {
+                            const month = comparisonMonth.split("-")[1];
+                            setComparisonMonth(`${year}-${month}`);
+                          }}
+                        >
+                          <SelectTrigger className="w-[100px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {years.map((year) => (
+                              <SelectItem key={year} value={year}>
+                                {year}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <div className="flex items-center justify-center px-3 h-10 w-[100px] rounded-md border bg-muted text-sm font-medium text-muted-foreground">
+                          {selectedYear}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <div className="space-y-3">
                   {categoryComparison.slice(0, 8).map((cat) => (
                     <div
