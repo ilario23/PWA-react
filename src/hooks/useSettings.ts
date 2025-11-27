@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, Setting } from "../lib/db";
+import { supabase } from "../lib/supabase";
 import { useAuth } from "./useAuth";
 
 /**
@@ -61,11 +62,13 @@ export function useSettings() {
   const updateSettings = async (updates: Partial<Setting>) => {
     if (!user) return;
 
+    const updatedAt = new Date().toISOString();
     const current = await db.user_settings.get(user.id);
+    
     if (current) {
       await db.user_settings.update(user.id, {
         ...updates,
-        updated_at: new Date().toISOString(),
+        updated_at: updatedAt,
       });
     } else {
       await db.user_settings.add({
@@ -79,8 +82,31 @@ export function useSettings() {
         include_investments_in_expense_totals: false,
         include_group_expenses: false,
         ...updates,
-        updated_at: new Date().toISOString(),
+        updated_at: updatedAt,
       } as Setting);
+    }
+
+    // Sync to Supabase (fire and forget, don't block UI)
+    const settingsToSync = await db.user_settings.get(user.id);
+    if (settingsToSync) {
+      // Map local field names to Supabase column names
+      const { last_sync_token, cached_month, accentColor, ...rest } = settingsToSync;
+      const supabaseSettings = {
+        ...rest,
+        accent_color: accentColor,
+        updated_at: updatedAt,
+      };
+      
+      supabase
+        .from("user_settings")
+        .upsert(supabaseSettings)
+        .then(({ error }) => {
+          if (error) {
+            console.error("[Settings] Failed to sync to Supabase:", error);
+          } else {
+            console.log("[Settings] Synced to Supabase");
+          }
+        });
     }
   };
 

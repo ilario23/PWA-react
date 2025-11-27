@@ -112,6 +112,9 @@ export class SyncManager {
       // Pull remote changes
       await this.pullDelta(user.id);
 
+      // Pull user settings (separate table with different structure)
+      await this.pullUserSettings(user.id);
+
       this.lastSyncAt = new Date().toISOString();
       console.log("[Sync] Sync completed successfully");
     } catch (error) {
@@ -177,6 +180,9 @@ export class SyncManager {
 
       // Pull ALL remote changes (ignoring sync_token)
       await this.pullAll(user.id);
+
+      // Pull user settings (separate table with different structure)
+      await this.pullUserSettings(user.id);
 
       this.lastSyncAt = new Date().toISOString();
       console.log("[Sync] Full sync completed successfully");
@@ -596,6 +602,71 @@ export class SyncManager {
         last_sync_token: maxToken,
         updated_at: new Date().toISOString(),
       });
+    }
+  }
+
+  /**
+   * Pull user_settings from Supabase.
+   * Settings use user_id as primary key, not id like other tables.
+   * Uses last-write-wins based on updated_at timestamp.
+   */
+  private async pullUserSettings(userId: string): Promise<void> {
+    try {
+      const { data, error } = await supabase
+        .from("user_settings")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+
+      if (error) {
+        // PGRST116 = no rows found, which is fine for new users
+        if (error.code !== "PGRST116") {
+          console.error("[Sync] Failed to pull user_settings:", error);
+        }
+        return;
+      }
+
+      if (!data) return;
+
+      const localSettings = await db.user_settings.get(userId);
+      
+      // Last-write-wins conflict resolution
+      if (localSettings) {
+        const localTime = localSettings.updated_at
+          ? new Date(localSettings.updated_at).getTime()
+          : 0;
+        const remoteTime = data.updated_at
+          ? new Date(data.updated_at).getTime()
+          : 0;
+
+        // Skip if local is newer
+        if (localTime >= remoteTime) {
+          console.log("[Sync] Local settings are newer, skipping pull");
+          return;
+        }
+      }
+
+      // Map Supabase column names to local field names
+      const localItem = {
+        user_id: data.user_id,
+        currency: data.currency,
+        language: data.language,
+        theme: data.theme,
+        accentColor: data.accent_color, // Map snake_case to camelCase
+        start_of_week: data.start_of_week,
+        default_view: data.default_view,
+        include_investments_in_expense_totals: data.include_investments_in_expense_totals,
+        include_group_expenses: data.include_group_expenses,
+        monthly_budget: data.monthly_budget,
+        cached_month: data.cached_month,
+        last_sync_token: localSettings?.last_sync_token || 0, // Preserve local sync token
+        updated_at: data.updated_at,
+      };
+
+      await db.user_settings.put(localItem);
+      console.log("[Sync] Pulled user_settings from Supabase");
+    } catch (error) {
+      console.error("[Sync] Error pulling user_settings:", error);
     }
   }
 }
