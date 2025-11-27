@@ -11,7 +11,7 @@ import {
   parseISO,
   format,
 } from "date-fns";
-import { toast } from "sonner";
+import { handleError, notifySuccess } from "@/lib/error-handler";
 import i18n from "@/i18n";
 
 /**
@@ -91,24 +91,24 @@ export function useAutoGenerate() {
         // Show notification if transactions were generated
         if (generatedCount > 0) {
           const t = i18n.t;
-          toast.success(
+          notifySuccess(
             t("recurring_generated", {
               count: generatedCount,
               amount: `€${totalAmount.toFixed(2)}`,
             }) ||
               `Generated ${generatedCount} recurring transaction(s) totaling €${totalAmount.toFixed(
                 2
-              )}`,
-            {
-              duration: 5000,
-            }
+              )}`
           );
 
           // Trigger sync
           syncManager.sync();
         }
       } catch (error) {
-        console.error("Error generating recurring transactions:", error);
+        handleError(error, 'error', {
+          source: 'useAutoGenerate',
+          operation: 'generate',
+        }, { showToast: false });
       }
     };
 

@@ -10,7 +10,7 @@ import {
 
 /**
  * Hook for managing transactions with optional filtering.
- * 
+ *
  * @param limit - Maximum number of transactions to return (optional)
  * @param yearMonth - Filter by year-month "YYYY-MM" or year "YYYY" (optional)
  * @param groupId - Filter by group: undefined = all, null = personal only, string = specific group
@@ -77,7 +77,7 @@ export function useTransactions(
   ) => {
     // Validate input data
     const validatedData = validate(TransactionInputSchema, transaction);
-    
+
     const id = uuidv4();
     await db.transactions.add({
       ...validatedData,
@@ -94,7 +94,7 @@ export function useTransactions(
   ) => {
     // Validate update data (partial validation)
     const validatedUpdates = validate(TransactionUpdateSchema, updates);
-    
+
     await db.transactions.update(id, {
       ...validatedUpdates,
       pendingSync: 1,

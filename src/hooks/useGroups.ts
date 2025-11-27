@@ -97,7 +97,7 @@ export function useGroups() {
   ) => {
     // Validate update data
     const validatedUpdates = validate(GroupUpdateSchema, updates);
-    
+
     await db.groups.update(id, {
       ...validatedUpdates,
       pendingSync: 1,
@@ -182,7 +182,7 @@ export function useGroups() {
       user_id: userId,
       share,
     });
-    
+
     const memberId = uuidv4();
 
     await db.group_members.add({
@@ -210,7 +210,7 @@ export function useGroups() {
   const updateMemberShare = async (memberId: string, share: number) => {
     // Validate share value
     const validatedData = validate(GroupMemberUpdateSchema, { share });
-    
+
     await db.group_members.update(memberId, {
       share: validatedData.share,
       pendingSync: 1,

@@ -36,7 +36,7 @@ export function useCategories(groupId?: string | null) {
       ...category,
       active: category.active ?? 1,
     });
-    
+
     const id = uuidv4();
     await db.categories.add({
       ...validatedData,
@@ -53,7 +53,7 @@ export function useCategories(groupId?: string | null) {
   ) => {
     // Validate update data
     const validatedUpdates = validate(CategoryUpdateSchema, updates);
-    
+
     await db.categories.update(id, {
       ...validatedUpdates,
       pendingSync: 1,

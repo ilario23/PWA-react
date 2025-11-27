@@ -54,7 +54,7 @@ export function useRecurringTransactions(groupId?: string | null) {
       ...transaction,
       active: 1,
     });
-    
+
     const id = uuidv4();
     await db.recurring_transactions.add({
       ...validatedData,
@@ -73,8 +73,11 @@ export function useRecurringTransactions(groupId?: string | null) {
     >
   ) => {
     // Validate update data
-    const validatedUpdates = validate(RecurringTransactionUpdateSchema, updates);
-    
+    const validatedUpdates = validate(
+      RecurringTransactionUpdateSchema,
+      updates
+    );
+
     await db.recurring_transactions.update(id, {
       ...validatedUpdates,
       pendingSync: 1,

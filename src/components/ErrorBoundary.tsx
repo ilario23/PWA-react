@@ -1,13 +1,20 @@
-import * as React from 'react';
-import { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import * as React from "react";
+import { Component, ErrorInfo, ReactNode } from "react";
+import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 // Check if we're in development mode
-const isDev = typeof import.meta !== 'undefined' 
-  ? (import.meta as any).env?.DEV 
-  : process.env.NODE_ENV === 'development';
+const isDev =
+  typeof import.meta !== "undefined"
+    ? (import.meta as any).env?.DEV
+    : process.env.NODE_ENV === "development";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -30,19 +37,22 @@ interface ErrorBoundaryState {
 /**
  * Error Boundary component that catches JavaScript errors anywhere in the child
  * component tree and displays a fallback UI instead of crashing the entire app.
- * 
+ *
  * @example
  * // Global error boundary
  * <ErrorBoundary>
  *   <App />
  * </ErrorBoundary>
- * 
+ *
  * // Section-specific error boundary
  * <ErrorBoundary section="Dashboard" minimal>
  *   <DashboardContent />
  * </ErrorBoundary>
  */
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -60,8 +70,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     this.setState({ errorInfo });
 
     // Log error for debugging
-    console.error('[ErrorBoundary] Caught error:', error);
-    console.error('[ErrorBoundary] Error info:', errorInfo);
+    console.error("[ErrorBoundary] Caught error:", error);
+    console.error("[ErrorBoundary] Error info:", errorInfo);
 
     // Call optional error handler
     this.props.onError?.(error, errorInfo);
@@ -75,7 +85,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   };
 
   handleGoHome = (): void => {
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
   handleRefresh = (): void => {
@@ -101,7 +111,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <div className="flex flex-col items-center justify-center p-6 text-center">
           <AlertTriangle className="h-8 w-8 text-destructive mb-2" />
           <p className="text-sm text-muted-foreground mb-3">
-            {section ? `Errore nel caricamento di ${section}` : 'Si è verificato un errore'}
+            {section
+              ? `Errore nel caricamento di ${section}`
+              : "Si è verificato un errore"}
           </p>
           <Button variant="outline" size="sm" onClick={this.handleRetry}>
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -121,11 +133,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 <AlertTriangle className="h-8 w-8 text-destructive" />
               </div>
             </div>
-            <CardTitle className="text-xl">Oops! Qualcosa è andato storto</CardTitle>
+            <CardTitle className="text-xl">
+              Oops! Qualcosa è andato storto
+            </CardTitle>
             <CardDescription>
               {section
                 ? `Si è verificato un errore imprevisto in ${section}.`
-                : 'Si è verificato un errore imprevisto.'}
+                : "Si è verificato un errore imprevisto."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -153,14 +167,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Riprova
               </Button>
-              <Button variant="outline" onClick={this.handleGoHome} className="flex-1">
+              <Button
+                variant="outline"
+                onClick={this.handleGoHome}
+                className="flex-1"
+              >
                 <Home className="h-4 w-4 mr-2" />
                 Vai alla Home
               </Button>
             </div>
 
             <p className="text-xs text-center text-muted-foreground">
-              Se il problema persiste, prova a ricaricare la pagina o{' '}
+              Se il problema persiste, prova a ricaricare la pagina o{" "}
               <button
                 onClick={this.handleRefresh}
                 className="underline hover:text-foreground transition-colors"
@@ -178,15 +196,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
 /**
  * Higher-order component to wrap any component with an error boundary.
- * 
+ *
  * @example
  * const SafeDashboard = withErrorBoundary(Dashboard, { section: 'Dashboard', minimal: true });
  */
 export function withErrorBoundary<P extends object>(
   WrappedComponent: React.ComponentType<P>,
-  errorBoundaryProps?: Omit<ErrorBoundaryProps, 'children'>
+  errorBoundaryProps?: Omit<ErrorBoundaryProps, "children">
 ): React.FC<P> {
-  const displayName = WrappedComponent.displayName || WrappedComponent.name || 'Component';
+  const displayName =
+    WrappedComponent.displayName || WrappedComponent.name || "Component";
 
   const ComponentWithErrorBoundary: React.FC<P> = (props) => (
     <ErrorBoundary {...errorBoundaryProps}>
@@ -202,10 +221,10 @@ export function withErrorBoundary<P extends object>(
 /**
  * Custom hook to throw errors from event handlers (which aren't caught by error boundaries).
  * Use this to convert async errors to synchronous errors that ErrorBoundary can catch.
- * 
+ *
  * @example
  * const throwError = useErrorHandler();
- * 
+ *
  * const handleClick = async () => {
  *   try {
  *     await riskyOperation();

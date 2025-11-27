@@ -83,7 +83,10 @@ export const ContextInputSchema = z.object({
     .string()
     .min(1, "Context name is required")
     .max(100, "Context name must be less than 100 characters"),
-  description: z.string().max(500, "Description must be less than 500 characters").optional(),
+  description: z
+    .string()
+    .max(500, "Description must be less than 500 characters")
+    .optional(),
   active: z.number().int().min(0).max(1).default(1),
 });
 
@@ -119,16 +122,25 @@ export const RecurringTransactionInputSchema = z.object({
     .max(500, "Description must be less than 500 characters"),
   frequency: frequencySchema,
   start_date: dateStringSchema,
-  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  end_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
   active: z.number().int().min(0).max(1).default(1),
 });
 
-export const RecurringTransactionUpdateSchema = RecurringTransactionInputSchema.partial().omit({
-  user_id: true,
-});
+export const RecurringTransactionUpdateSchema =
+  RecurringTransactionInputSchema.partial().omit({
+    user_id: true,
+  });
 
-export type RecurringTransactionInput = z.infer<typeof RecurringTransactionInputSchema>;
-export type RecurringTransactionUpdate = z.infer<typeof RecurringTransactionUpdateSchema>;
+export type RecurringTransactionInput = z.infer<
+  typeof RecurringTransactionInputSchema
+>;
+export type RecurringTransactionUpdate = z.infer<
+  typeof RecurringTransactionUpdateSchema
+>;
 
 // ============================================================================
 // GROUP SCHEMA
@@ -139,7 +151,10 @@ export const GroupInputSchema = z.object({
     .string()
     .min(1, "Group name is required")
     .max(100, "Group name must be less than 100 characters"),
-  description: z.string().max(500, "Description must be less than 500 characters").optional(),
+  description: z
+    .string()
+    .max(500, "Description must be less than 500 characters")
+    .optional(),
   created_by: uuidSchema,
 });
 
@@ -191,9 +206,10 @@ export const CategoryBudgetInputSchema = z.object({
   period: budgetPeriodSchema,
 });
 
-export const CategoryBudgetUpdateSchema = CategoryBudgetInputSchema.partial().omit({
-  user_id: true,
-});
+export const CategoryBudgetUpdateSchema =
+  CategoryBudgetInputSchema.partial().omit({
+    user_id: true,
+  });
 
 export type CategoryBudgetInput = z.infer<typeof CategoryBudgetInputSchema>;
 export type CategoryBudgetUpdate = z.infer<typeof CategoryBudgetUpdateSchema>;
@@ -204,7 +220,10 @@ export type CategoryBudgetUpdate = z.infer<typeof CategoryBudgetUpdateSchema>;
 
 export const UserSettingsSchema = z.object({
   user_id: uuidSchema,
-  currency: z.string().length(3, "Currency must be a 3-letter code").default("EUR"),
+  currency: z
+    .string()
+    .length(3, "Currency must be a 3-letter code")
+    .default("EUR"),
   language: z.string().min(2).max(5).default("en"),
   theme: z.enum(["light", "dark", "system"]).default("light"),
   accentColor: z.string().default("slate"),
@@ -230,7 +249,9 @@ export class ValidationError extends Error {
   public errors: z.ZodIssue[];
 
   constructor(errors: z.ZodIssue[]) {
-    const message = errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ");
+    const message = errors
+      .map((e) => `${e.path.join(".")}: ${e.message}`)
+      .join(", ");
     super(message);
     this.name = "ValidationError";
     this.errors = errors;

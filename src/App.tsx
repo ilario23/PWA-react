@@ -107,7 +107,10 @@ function App() {
                       <Route
                         path="/recurring"
                         element={
-                          <ErrorBoundary section="Transazioni Ricorrenti" minimal>
+                          <ErrorBoundary
+                            section="Transazioni Ricorrenti"
+                            minimal
+                          >
                             <RecurringTransactionsPage />
                           </ErrorBoundary>
                         }

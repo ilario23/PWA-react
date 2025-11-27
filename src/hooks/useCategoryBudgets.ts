@@ -5,10 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "./useAuth";
 import { useMemo } from "react";
 import { format } from "date-fns";
-import {
-  CategoryBudgetInputSchema,
-  validate,
-} from "../lib/validation";
+import { CategoryBudgetInputSchema, validate } from "../lib/validation";
 
 export interface CategoryBudgetWithSpent extends CategoryBudget {
   spent: number;

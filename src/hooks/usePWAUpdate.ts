@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
+import { handleError } from "@/lib/error-handler";
 
 interface PWAUpdateState {
   needRefresh: boolean;
@@ -29,7 +30,10 @@ export function usePWAUpdate(): PWAUpdateState {
       }
     },
     onRegisterError(error) {
-      console.error("[PWA] Service Worker registration error:", error);
+      handleError(error, 'warning', {
+        source: 'usePWAUpdate',
+        operation: 'register',
+      }, { showToast: false });
     },
   });
 

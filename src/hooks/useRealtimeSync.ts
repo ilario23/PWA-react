@@ -6,6 +6,7 @@ import {
 import { supabase } from "../lib/supabase";
 import { db } from "../lib/db";
 import { useAuth } from "./useAuth";
+import { handleError } from "@/lib/error-handler";
 
 // Tables we want to subscribe to
 const REALTIME_TABLES = [
@@ -136,10 +137,11 @@ export function useRealtimeSync() {
           }
         }
       } catch (error) {
-        console.error(
-          `[Realtime] Error handling ${eventType} on ${table}:`,
-          error
-        );
+        handleError(error, 'warning', {
+          source: 'useRealtimeSync',
+          operation: `handle-${eventType}`,
+          meta: { table },
+        }, { showToast: false });
       }
     },
     []

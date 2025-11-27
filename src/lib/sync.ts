@@ -77,25 +77,27 @@ export class SyncManager {
       console.log("[Sync] Already syncing, skipping...");
       return;
     }
-    
+
     this.isSyncing = true;
     this.notifyListeners();
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         console.log("[Sync] No user, skipping sync");
         return;
       }
 
       console.log("[Sync] Starting sync...");
-      
+
       // Push local changes with retry
       await this.pushPendingWithRetry(user.id);
-      
+
       // Pull remote changes
       await this.pullDelta(user.id);
-      
+
       this.lastSyncAt = new Date().toISOString();
       console.log("[Sync] Sync completed successfully");
     } catch (error) {
@@ -115,7 +117,9 @@ export class SyncManager {
     this.notifyListeners();
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       console.log("[Sync] Pushing pending changes...");
@@ -225,7 +229,9 @@ export class SyncManager {
 
       if (pendingItems.length === 0) continue;
 
-      console.log(`[Sync] Pushing ${pendingItems.length} items to ${tableName}`);
+      console.log(
+        `[Sync] Pushing ${pendingItems.length} items to ${tableName}`
+      );
 
       // Process in batches to avoid overwhelming the server
       for (let i = 0; i < pendingItems.length; i += SYNC_CONFIG.batchSize) {
@@ -243,10 +249,12 @@ export class SyncManager {
     items: any[],
     userId: string
   ): Promise<void> {
-    const itemsToPush = items.map((item) => this.prepareItemForPush(item, tableName, userId));
-    
+    const itemsToPush = items.map((item) =>
+      this.prepareItemForPush(item, tableName, userId)
+    );
+
     let lastError: Error | null = null;
-    
+
     for (let attempt = 0; attempt < SYNC_CONFIG.maxRetries; attempt++) {
       try {
         const { error } = await supabase.from(tableName).upsert(itemsToPush);
@@ -268,7 +276,9 @@ export class SyncManager {
       } catch (error) {
         lastError = error as Error;
         console.warn(
-          `[Sync] Attempt ${attempt + 1}/${SYNC_CONFIG.maxRetries} failed for ${tableName}:`,
+          `[Sync] Attempt ${attempt + 1}/${
+            SYNC_CONFIG.maxRetries
+          } failed for ${tableName}:`,
           error
         );
 
@@ -281,8 +291,10 @@ export class SyncManager {
     }
 
     // All retries failed - track errors for each item
-    console.error(`[Sync] Failed to push ${items.length} items to ${tableName} after ${SYNC_CONFIG.maxRetries} attempts`);
-    
+    console.error(
+      `[Sync] Failed to push ${items.length} items to ${tableName} after ${SYNC_CONFIG.maxRetries} attempts`
+    );
+
     for (const item of items) {
       const errorKey = `${tableName}:${item.id}`;
       const existingError = this.errorMap.get(errorKey);
@@ -303,7 +315,11 @@ export class SyncManager {
   /**
    * Prepare an item for pushing to Supabase
    */
-  private prepareItemForPush(item: any, tableName: TableName, userId: string): any {
+  private prepareItemForPush(
+    item: any,
+    tableName: TableName,
+    userId: string
+  ): any {
     // Remove local-only fields
     const { pendingSync, year_month, ...rest } = item;
 
@@ -348,16 +364,18 @@ export class SyncManager {
         await db.transaction("rw", db.table(tableName), async () => {
           for (const item of data) {
             const shouldUpdate = await this.shouldUpdateLocal(tableName, item);
-            
+
             if (!shouldUpdate) {
-              console.log(`[Sync] Skipping ${tableName} ${item.id} - local is newer`);
+              console.log(
+                `[Sync] Skipping ${tableName} ${item.id} - local is newer`
+              );
               continue;
             }
 
             // Calculate year_month for transactions if missing
             const localItem = this.prepareItemForLocal(item, tableName);
             await db.table(tableName).put(localItem);
-            
+
             if (item.sync_token > maxToken) {
               maxToken = item.sync_token;
             }
@@ -379,9 +397,12 @@ export class SyncManager {
    * Check if we should update local with remote data
    * Implements last-write-wins conflict resolution
    */
-  private async shouldUpdateLocal(tableName: TableName, remoteItem: any): Promise<boolean> {
+  private async shouldUpdateLocal(
+    tableName: TableName,
+    remoteItem: any
+  ): Promise<boolean> {
     const existing = await db.table(tableName).get(remoteItem.id);
-    
+
     if (!existing) return true;
     if (existing.pendingSync !== 1) return true;
 
@@ -401,12 +422,12 @@ export class SyncManager {
    */
   private prepareItemForLocal(item: any, tableName: TableName): any {
     const localItem = { ...item, pendingSync: 0 };
-    
+
     // Calculate year_month for transactions
     if (tableName === "transactions" && item.date) {
       localItem.year_month = item.date.substring(0, 7);
     }
-    
+
     return localItem;
   }
 
