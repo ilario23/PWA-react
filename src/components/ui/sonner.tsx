@@ -5,15 +5,17 @@ type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 const Toaster = ({ ...props }: ToasterProps) => {
   // Use local state instead of hook to avoid potential issues
-  const [position, setPosition] = useState<"top-center" | "top-right">("top-right");
+  const [position, setPosition] = useState<"top-center" | "top-right">(
+    "top-right"
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    
+
     const updatePosition = () => {
       setPosition(window.innerWidth < 768 ? "top-center" : "top-right");
     };
-    
+
     updatePosition();
     window.addEventListener("resize", updatePosition);
     return () => window.removeEventListener("resize", updatePosition);
