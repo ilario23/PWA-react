@@ -195,6 +195,7 @@
   "per_day": "/day",
   "category_has_transactions_warning": "Warning: This category has {{count}} associated transaction(s). Deleting it will leave these transactions without a category.",
   "status": "Status",
+  "details": "Details",
   "active": "Active",
   "inactive": "Inactive",
   "warning_subcategories": "Warning: Subcategories Detected",

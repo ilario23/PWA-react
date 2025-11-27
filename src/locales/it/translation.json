@@ -195,6 +195,7 @@
   "per_day": "/giorno",
   "category_has_transactions_warning": "Attenzione: Questa categoria ha {{count}} transazione/i associata/e. Eliminarla lascerà queste transazioni senza categoria.",
   "status": "Stato",
+  "details": "Dettagli",
   "active": "Attivo",
   "inactive": "Inattivo",
   "warning_subcategories": "Attenzione: Sottocategorie Rilevate",

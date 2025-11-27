@@ -34,14 +34,13 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
   Plus,
-  Trash2,
-  Edit,
-  Target,
   X,
   ChevronDown,
   ChevronRight,
+  MoreVertical,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { CategoryDetailSheet } from "@/components/CategoryDetailSheet";
 import { AVAILABLE_ICONS, getIconComponent } from "@/lib/icons";
 import { SyncStatusBadge } from "@/components/SyncStatus";
 import { CategorySelector } from "@/components/CategorySelector";
@@ -62,12 +61,7 @@ interface CategoryListProps {
   hasChildren: (id: string) => boolean;
   expandedCategories: Set<string>;
   toggleCategory: (id: string) => void;
-  getCategoryBudgetInfo: (
-    id: string
-  ) => { amount: number; spent: number; percentage: number } | null | undefined;
-  handleEdit: (category: Category) => void;
-  handleDeleteClick: (id: string) => void;
-  handleOpenBudgetDialog: (id: string) => void;
+  onCategoryClick: (category: Category) => void;
   t: (key: string) => string;
 }
 
@@ -79,10 +73,7 @@ function MobileCategoryList({
   hasChildren,
   expandedCategories,
   toggleCategory,
-  getCategoryBudgetInfo,
-  handleEdit,
-  handleDeleteClick,
-  handleOpenBudgetDialog,
+  onCategoryClick,
   t,
 }: CategoryListProps) {
   const baseIndent = 16; // px per level
@@ -93,8 +84,6 @@ function MobileCategoryList({
   return (
     <>
       {categories.map((c, index) => {
-        const budgetInfo =
-          c.type === "expense" ? getCategoryBudgetInfo(c.id) : null;
         const children = getChildren(c.id);
         const isExpanded = expandedCategories.has(c.id);
         const isRoot = depth === 0;
@@ -124,7 +113,7 @@ function MobileCategoryList({
                 style={{ paddingLeft: isRoot ? undefined : `${baseIndent}px` }}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     {children.length > 0 ? (
                       <CollapsibleTrigger asChild>
                         <Button
@@ -158,7 +147,7 @@ function MobileCategoryList({
                           ) : null;
                         })()}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div
                         className={`${
                           isRoot ? "font-medium" : "font-medium text-sm"
@@ -190,79 +179,15 @@ function MobileCategoryList({
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    {c.type === "expense" && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={isRoot ? "h-8 w-8" : "h-7 w-7"}
-                        onClick={() => handleOpenBudgetDialog(c.id)}
-                      >
-                        <Target
-                          className={`${isRoot ? "h-4 w-4" : "h-3 w-3"} ${
-                            budgetInfo ? "text-primary" : ""
-                          }`}
-                        />
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={isRoot ? "h-8 w-8" : "h-7 w-7"}
-                      onClick={() => handleEdit(c)}
-                    >
-                      <Edit className={isRoot ? "h-4 w-4" : "h-3 w-3"} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={isRoot ? "h-8 w-8" : "h-7 w-7"}
-                      onClick={() => handleDeleteClick(c.id)}
-                    >
-                      <Trash2
-                        className={`${
-                          isRoot ? "h-4 w-4" : "h-3 w-3"
-                        } text-destructive`}
-                      />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={isRoot ? "h-8 w-8 shrink-0" : "h-7 w-7 shrink-0"}
+                    onClick={() => onCategoryClick(c)}
+                  >
+                    <MoreVertical className={isRoot ? "h-4 w-4" : "h-3 w-3"} />
+                  </Button>
                 </div>
-                {/* Budget progress bar */}
-                {budgetInfo && (
-                  <div className="mt-3 ml-11 space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>
-                        {t("budget")}: {budgetInfo.amount.toFixed(2)}
-                      </span>
-                      <span
-                        className={
-                          budgetInfo.percentage > 100 ? "text-destructive" : ""
-                        }
-                      >
-                        {budgetInfo.spent.toFixed(2)} (
-                        {budgetInfo.percentage.toFixed(0)}%)
-                      </span>
-                    </div>
-                    <div
-                      className={`${
-                        isRoot ? "h-2" : "h-1.5"
-                      } bg-muted rounded-full overflow-hidden`}
-                    >
-                      <div
-                        className={`h-full transition-all ${
-                          budgetInfo.percentage > 100
-                            ? "bg-destructive"
-                            : budgetInfo.percentage > 80
-                            ? "bg-yellow-500"
-                            : "bg-primary"
-                        }`}
-                        style={{
-                          width: `${Math.min(budgetInfo.percentage, 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Children categories - recursive */}
@@ -276,10 +201,7 @@ function MobileCategoryList({
                       hasChildren={hasChildren}
                       expandedCategories={expandedCategories}
                       toggleCategory={toggleCategory}
-                      getCategoryBudgetInfo={getCategoryBudgetInfo}
-                      handleEdit={handleEdit}
-                      handleDeleteClick={handleDeleteClick}
-                      handleOpenBudgetDialog={handleOpenBudgetDialog}
+                      onCategoryClick={onCategoryClick}
                       t={t}
                     />
                   </div>
@@ -301,10 +223,7 @@ function DesktopCategoryRows({
   hasChildren,
   expandedCategories,
   toggleCategory,
-  getCategoryBudgetInfo,
-  handleEdit,
-  handleDeleteClick,
-  handleOpenBudgetDialog,
+  onCategoryClick,
   t,
 }: CategoryListProps) {
   const maxDepth = 5; // Prevent infinite recursion
@@ -314,8 +233,6 @@ function DesktopCategoryRows({
   return (
     <>
       {categories.map((c, index) => {
-        const budgetInfo =
-          c.type === "expense" ? getCategoryBudgetInfo(c.id) : null;
         const children = getChildren(c.id);
         const isExpanded = expandedCategories.has(c.id);
         const isRoot = depth === 0;
@@ -387,55 +304,6 @@ function DesktopCategoryRows({
                 {t(c.type)}
               </TableCell>
               <TableCell>
-                {c.type === "expense" ? (
-                  budgetInfo ? (
-                    <div
-                      className={`space-y-1 ${
-                        isRoot ? "min-w-[120px]" : "min-w-[100px]"
-                      }`}
-                    >
-                      <div className="flex justify-between text-xs">
-                        <span>
-                          {budgetInfo.spent.toFixed(0)} /{" "}
-                          {budgetInfo.amount.toFixed(0)}
-                        </span>
-                        <span
-                          className={
-                            budgetInfo.percentage > 100
-                              ? "text-destructive"
-                              : ""
-                          }
-                        >
-                          {budgetInfo.percentage.toFixed(0)}%
-                        </span>
-                      </div>
-                      <div
-                        className={`${
-                          isRoot ? "h-2" : "h-1.5"
-                        } bg-muted rounded-full overflow-hidden`}
-                      >
-                        <div
-                          className={`h-full transition-all ${
-                            budgetInfo.percentage > 100
-                              ? "bg-destructive"
-                              : budgetInfo.percentage > 80
-                              ? "bg-yellow-500"
-                              : "bg-primary"
-                          }`}
-                          style={{
-                            width: `${Math.min(budgetInfo.percentage, 100)}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">-</span>
-                  )
-                ) : (
-                  <span className="text-muted-foreground text-sm">N/A</span>
-                )}
-              </TableCell>
-              <TableCell>
                 {c.active === 0 ? (
                   <Badge
                     variant="secondary"
@@ -455,43 +323,14 @@ function DesktopCategoryRows({
                 )}
               </TableCell>
               <TableCell>
-                <div className="flex items-center justify-end gap-2">
-                  {c.type === "expense" && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={isRoot ? "" : "h-7 w-7"}
-                      onClick={() => handleOpenBudgetDialog(c.id)}
-                      title={t("set_budget")}
-                    >
-                      <Target
-                        className={`${isRoot ? "h-4 w-4" : "h-3 w-3"} ${
-                          budgetInfo ? "text-primary" : ""
-                        }`}
-                      />
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={isRoot ? "" : "h-7 w-7"}
-                    onClick={() => handleEdit(c)}
-                  >
-                    <Edit className={isRoot ? "h-4 w-4" : "h-3 w-3"} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={isRoot ? "" : "h-7 w-7"}
-                    onClick={() => handleDeleteClick(c.id)}
-                  >
-                    <Trash2
-                      className={`${
-                        isRoot ? "h-4 w-4" : "h-3 w-3"
-                      } text-destructive`}
-                    />
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={isRoot ? "" : "h-7 w-7"}
+                  onClick={() => onCategoryClick(c)}
+                >
+                  <MoreVertical className={isRoot ? "h-4 w-4" : "h-3 w-3"} />
+                </Button>
               </TableCell>
             </TableRow>
 
@@ -504,10 +343,7 @@ function DesktopCategoryRows({
                 hasChildren={hasChildren}
                 expandedCategories={expandedCategories}
                 toggleCategory={toggleCategory}
-                getCategoryBudgetInfo={getCategoryBudgetInfo}
-                handleEdit={handleEdit}
-                handleDeleteClick={handleDeleteClick}
-                handleOpenBudgetDialog={handleOpenBudgetDialog}
+                onCategoryClick={onCategoryClick}
                 t={t}
               />
             )}
@@ -550,6 +386,10 @@ export function CategoriesPage() {
   const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
   const [budgetCategoryId, setBudgetCategoryId] = useState<string | null>(null);
   const [budgetAmount, setBudgetAmount] = useState<string>("");
+
+  // Category Detail Sheet State
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
   // Conflict Resolution State
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
@@ -833,6 +673,23 @@ export function CategoriesPage() {
     });
   };
 
+  // Handle category click to open detail sheet
+  const handleCategoryClick = (category: Category) => {
+    setSelectedCategory(category);
+    setDetailSheetOpen(true);
+  };
+
+  // Get parent category for detail sheet
+  const getParentCategory = (parentId?: string) => {
+    if (!parentId) return null;
+    return categories?.find((c) => c.id === parentId) || null;
+  };
+
+  // Get children count for a category
+  const getChildrenCount = (categoryId: string) => {
+    return getChildren(categoryId).length;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -1007,11 +864,7 @@ export function CategoriesPage() {
                     <Skeleton className="h-3 w-16" />
                   </div>
                 </div>
-                <div className="flex gap-1">
-                  <Skeleton className="h-8 w-8 rounded-md" />
-                  <Skeleton className="h-8 w-8 rounded-md" />
-                  <Skeleton className="h-8 w-8 rounded-md" />
-                </div>
+                <Skeleton className="h-8 w-8 rounded-md" />
               </div>
             </div>
           ))
@@ -1027,10 +880,7 @@ export function CategoriesPage() {
             hasChildren={hasChildren}
             expandedCategories={expandedCategories}
             toggleCategory={toggleCategory}
-            getCategoryBudgetInfo={getCategoryBudgetInfo}
-            handleEdit={handleEdit}
-            handleDeleteClick={handleDeleteClick}
-            handleOpenBudgetDialog={handleOpenBudgetDialog}
+            onCategoryClick={handleCategoryClick}
             t={t}
           />
         )}
@@ -1044,7 +894,6 @@ export function CategoriesPage() {
               <TableHead className="w-8"></TableHead>
               <TableHead>{t("name")}</TableHead>
               <TableHead>{t("type")}</TableHead>
-              <TableHead>{t("budget")}</TableHead>
               <TableHead>{t("status") || "Status"}</TableHead>
               <TableHead></TableHead>
             </TableRow>
@@ -1072,17 +921,10 @@ export function CategoriesPage() {
                     <Skeleton className="h-4 w-16" />
                   </TableCell>
                   <TableCell>
-                    <Skeleton className="h-4 w-20" />
-                  </TableCell>
-                  <TableCell>
                     <Skeleton className="h-5 w-16 rounded-full" />
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center justify-end gap-2">
-                      <Skeleton className="h-8 w-8 rounded-md" />
-                      <Skeleton className="h-8 w-8 rounded-md" />
-                      <Skeleton className="h-8 w-8 rounded-md" />
-                    </div>
+                    <Skeleton className="h-8 w-8 rounded-md" />
                   </TableCell>
                 </TableRow>
               ))
@@ -1094,10 +936,7 @@ export function CategoriesPage() {
                 hasChildren={hasChildren}
                 expandedCategories={expandedCategories}
                 toggleCategory={toggleCategory}
-                getCategoryBudgetInfo={getCategoryBudgetInfo}
-                handleEdit={handleEdit}
-                handleDeleteClick={handleDeleteClick}
-                handleOpenBudgetDialog={handleOpenBudgetDialog}
+                onCategoryClick={handleCategoryClick}
                 t={t}
               />
             )}
@@ -1193,6 +1032,23 @@ export function CategoriesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Category Detail Sheet */}
+      <CategoryDetailSheet
+        category={selectedCategory}
+        open={detailSheetOpen}
+        onOpenChange={setDetailSheetOpen}
+        budgetInfo={
+          selectedCategory?.type === "expense"
+            ? getCategoryBudgetInfo(selectedCategory.id)
+            : null
+        }
+        parentCategory={getParentCategory(selectedCategory?.parent_id)}
+        childrenCount={selectedCategory ? getChildrenCount(selectedCategory.id) : 0}
+        onEdit={() => selectedCategory && handleEdit(selectedCategory)}
+        onDelete={() => selectedCategory && handleDeleteClick(selectedCategory.id)}
+        onSetBudget={() => selectedCategory && handleOpenBudgetDialog(selectedCategory.id)}
+      />
     </div>
   );
 }

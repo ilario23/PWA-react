@@ -16,7 +16,7 @@ jest.mock("../../lib/sync", () => {
     syncManager: {
       sync: jest.fn().mockResolvedValue(undefined),
       getStatus: jest.fn(() => ({ ...mockStatus })),
-      onSyncChange: jest.fn((callback: (status: SyncStatus) => void) => {
+      onSyncChange: jest.fn((_callback: (status: SyncStatus) => void) => {
         return jest.fn(); // unsubscribe function
       }),
       retryError: jest.fn().mockResolvedValue(undefined),
