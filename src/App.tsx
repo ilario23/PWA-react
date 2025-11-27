@@ -13,6 +13,7 @@ import { useAutoGenerate } from "@/hooks/useAutoGenerate";
 import { useBudgetNotifications } from "@/hooks/useBudgetNotifications";
 import { Toaster } from "@/components/ui/sonner";
 import { PWAUpdateNotification } from "@/components/PWAUpdateNotification";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { TransactionsPage } from "@/pages/Transactions";
 import { RecurringTransactionsPage } from "@/pages/RecurringTransactions";
@@ -74,45 +75,101 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <Router>
-      <ThemeProvider>
-        <Toaster />
-        <PWAUpdateNotification />
-        <Routes>
-          <Route path="/auth" element={<AuthPage />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <AppShell>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route
-                      path="/transactions"
-                      element={<TransactionsPage />}
-                    />
-                    <Route
-                      path="/recurring"
-                      element={<RecurringTransactionsPage />}
-                    />
-                    <Route path="/categories" element={<CategoriesPage />} />
-                    <Route path="/contexts" element={<ContextsPage />} />
-                    <Route path="/groups" element={<GroupsPage />} />
-                    <Route
-                      path="/groups/:groupId"
-                      element={<GroupDetailPage />}
-                    />
-                    <Route path="/statistics" element={<StatisticsPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                </AppShell>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </ThemeProvider>
-    </Router>
+    <ErrorBoundary section="App">
+      <Router>
+        <ThemeProvider>
+          <Toaster />
+          <PWAUpdateNotification />
+          <Routes>
+            <Route path="/auth" element={<AuthPage />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <Routes>
+                      <Route
+                        path="/"
+                        element={
+                          <ErrorBoundary section="Dashboard" minimal>
+                            <Dashboard />
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route
+                        path="/transactions"
+                        element={
+                          <ErrorBoundary section="Transazioni" minimal>
+                            <TransactionsPage />
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route
+                        path="/recurring"
+                        element={
+                          <ErrorBoundary section="Transazioni Ricorrenti" minimal>
+                            <RecurringTransactionsPage />
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route
+                        path="/categories"
+                        element={
+                          <ErrorBoundary section="Categorie" minimal>
+                            <CategoriesPage />
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route
+                        path="/contexts"
+                        element={
+                          <ErrorBoundary section="Contesti" minimal>
+                            <ContextsPage />
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route
+                        path="/groups"
+                        element={
+                          <ErrorBoundary section="Gruppi" minimal>
+                            <GroupsPage />
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route
+                        path="/groups/:groupId"
+                        element={
+                          <ErrorBoundary section="Dettaglio Gruppo" minimal>
+                            <GroupDetailPage />
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route
+                        path="/statistics"
+                        element={
+                          <ErrorBoundary section="Statistiche" minimal>
+                            <StatisticsPage />
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route
+                        path="/settings"
+                        element={
+                          <ErrorBoundary section="Impostazioni" minimal>
+                            <SettingsPage />
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </ThemeProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }
 
