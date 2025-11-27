@@ -310,7 +310,7 @@ export function Dashboard() {
             {dailyCumulativeExpenses.length > 0 ? (
               <ChartContainer
                 config={chartConfig}
-                className="h-[180px] w-full md:h-auto"
+                className="h-[180px] w-full md:h-[250px] min-h-[180px]"
               >
                 <AreaChart
                   accessibilityLayer
