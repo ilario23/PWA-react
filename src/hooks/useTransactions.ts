@@ -6,54 +6,68 @@ import {
   TransactionInputSchema,
   TransactionUpdateSchema,
   validate,
-  ValidationError,
 } from "../lib/validation";
 
+/**
+ * Hook for managing transactions with optional filtering.
+ * 
+ * @param limit - Maximum number of transactions to return (optional)
+ * @param yearMonth - Filter by year-month "YYYY-MM" or year "YYYY" (optional)
+ * @param groupId - Filter by group: undefined = all, null = personal only, string = specific group
+ */
 export function useTransactions(
   limit?: number,
   yearMonth?: string,
   groupId?: string | null
 ) {
-  const transactions = useLiveQuery(() => {
+  // Single unified query that handles all filtering in one operation
+  // This eliminates the race condition from the previous nested useLiveQuery pattern
+  const transactions = useLiveQuery(async () => {
+    let results: Transaction[];
+
     if (yearMonth) {
       // If yearMonth is just a year (e.g. "2024"), filter by date range
       if (yearMonth.length === 4) {
-        return db.transactions
+        results = await db.transactions
           .where("date")
           .between(`${yearMonth}-01-01`, `${yearMonth}-12-31\uffff`)
-          .reverse()
-          .sortBy("date");
+          .toArray();
+      } else {
+        // Filter by specific month
+        results = await db.transactions
+          .where("year_month")
+          .equals(yearMonth)
+          .toArray();
       }
-
-      return db.transactions
-        .where("year_month")
-        .equals(yearMonth)
+    } else if (limit) {
+      // Get limited results without month filter
+      results = await db.transactions
+        .orderBy("date")
         .reverse()
-        .sortBy("date");
-    }
-
-    let collection = db.transactions.orderBy("date").reverse();
-    if (limit) {
-      return collection.limit(limit).toArray();
-    }
-    return collection.toArray();
-  }, [limit, yearMonth]);
-
-  // Filter by group if specified
-  const filteredTransactions = useLiveQuery(async () => {
-    if (!transactions) return undefined;
-
-    if (groupId === undefined) {
-      // Return all transactions (no group filter)
-      return transactions;
-    } else if (groupId === null) {
-      // Return only personal transactions
-      return transactions.filter((t) => !t.group_id);
+        .limit(limit)
+        .toArray();
     } else {
-      // Return only transactions for specific group
-      return transactions.filter((t) => t.group_id === groupId);
+      // Get all transactions
+      results = await db.transactions.toArray();
     }
-  }, [transactions, groupId]);
+
+    // Apply group filter inline to avoid separate query
+    if (groupId !== undefined) {
+      if (groupId === null) {
+        // Return only personal transactions
+        results = results.filter((t) => !t.group_id);
+      } else {
+        // Return only transactions for specific group
+        results = results.filter((t) => t.group_id === groupId);
+      }
+    }
+
+    // Sort by date descending (most recent first)
+    // We sort here because some query paths don't guarantee order
+    results.sort((a, b) => b.date.localeCompare(a.date));
+
+    return results;
+  }, [limit, yearMonth, groupId]);
 
   const addTransaction = async (
     transaction: Omit<
@@ -94,10 +108,11 @@ export function useTransactions(
       deleted_at: new Date().toISOString(),
       pendingSync: 1,
     });
+    syncManager.sync();
   };
 
   return {
-    transactions: groupId !== undefined ? filteredTransactions : transactions,
+    transactions,
     addTransaction,
     updateTransaction,
     deleteTransaction,
