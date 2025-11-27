@@ -54,8 +54,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <MobileNav navigation={navigation} />
       <DesktopNav navigation={navigation} />
 
-      {/* Main Content - pt-14 compensates for fixed mobile header */}
-      <main className="flex-1 w-full overflow-y-auto overscroll-contain p-4 pt-16 md:p-8 md:pt-8">
+      {/* Main Content - pt-14 compensates for fixed mobile header, pb for iOS safe area */}
+      <main className="flex-1 w-full overflow-y-auto overscroll-contain p-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-8 md:pt-8 md:pb-8">
         <div className="mx-auto max-w-6xl space-y-6">{children}</div>
       </main>
     </div>
