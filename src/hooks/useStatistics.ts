@@ -92,9 +92,9 @@ export function useStatistics(params?: UseStatisticsParams) {
     () =>
       mode === "yearly"
         ? db.transactions
-            .where("year_month")
-            .between(`${currentYear}-01`, `${currentYear}-12`, true, true)
-            .toArray()
+          .where("year_month")
+          .between(`${currentYear}-01`, `${currentYear}-12`, true, true)
+          .toArray()
         : Promise.resolve([] as Transaction[]),
     [currentYear, mode]
   );
@@ -104,9 +104,9 @@ export function useStatistics(params?: UseStatisticsParams) {
     () =>
       mode === "yearly"
         ? db.transactions
-            .where("year_month")
-            .between(`${previousYear}-01`, `${previousYear}-12`, true, true)
-            .toArray()
+          .where("year_month")
+          .between(`${previousYear}-01`, `${previousYear}-12`, true, true)
+          .toArray()
         : Promise.resolve([] as Transaction[]),
     [previousYear, mode]
   );
@@ -603,12 +603,14 @@ export function useStatistics(params?: UseStatisticsParams) {
           ? cumulativeAtCurrentDay + dailyAverage * (day - currentDay)
           : undefined;
 
-      const cumulativeValue: number =
-        day <= currentDay ? Math.round(cumulative * 100) / 100 : 0;
+      // For future days, we don't want to show 0, we want to show nothing (break the line)
+      // Unless it's the current day, where we show the actual value
+      const cumulativeValue =
+        day <= currentDay ? Math.round(cumulative * 100) / 100 : undefined;
 
       result.push({
         day: day.toString(),
-        cumulative: cumulativeValue,
+        cumulative: cumulativeValue as number, // Cast to number to satisfy type, but Recharts handles undefined/null
         projection:
           projection !== undefined
             ? Math.round(projection * 100) / 100
@@ -876,12 +878,12 @@ export function useStatistics(params?: UseStatisticsParams) {
       // Simple heuristic: on track if current spending rate is less than 110% of historical average
       const historicalMonthlyAverage = allTimeTransactions
         ? allTimeTransactions
-            .filter((t) => !t.deleted_at && t.type === "expense")
-            .reduce((sum, t) => sum + Number(t.amount), 0) /
-          Math.max(
-            new Set(allTimeTransactions.map((t) => t.year_month)).size,
-            1
-          )
+          .filter((t) => !t.deleted_at && t.type === "expense")
+          .reduce((sum, t) => sum + Number(t.amount), 0) /
+        Math.max(
+          new Set(allTimeTransactions.map((t) => t.year_month)).size,
+          1
+        )
         : 0;
 
       rate.noBudget = historicalMonthlyAverage === 0;
@@ -927,14 +929,14 @@ export function useStatistics(params?: UseStatisticsParams) {
       // Simple heuristic for yearly on track
       const historicalYearlyAverage = allTimeTransactions
         ? allTimeTransactions
-            .filter((t) => !t.deleted_at && t.type === "expense")
-            .reduce((sum, t) => sum + Number(t.amount), 0) /
-          Math.max(
-            new Set(
-              allTimeTransactions.map((t) => t.year_month.substring(0, 4))
-            ).size,
-            1
-          )
+          .filter((t) => !t.deleted_at && t.type === "expense")
+          .reduce((sum, t) => sum + Number(t.amount), 0) /
+        Math.max(
+          new Set(
+            allTimeTransactions.map((t) => t.year_month.substring(0, 4))
+          ).size,
+          1
+        )
         : 0;
 
       rate.noBudget = historicalYearlyAverage === 0;
@@ -1018,11 +1020,22 @@ export function useStatistics(params?: UseStatisticsParams) {
 
       // Calculate cumulative totals
       let cumulative = 0;
+      const today = new Date();
+      const isCurrentYear = currentYear === today.getFullYear().toString();
+      const currentMonthIndex = today.getMonth();
+
       for (let i = 0; i < 12; i++) {
         cumulative += monthlyTotals[i];
+
+        // For future months in the current year, return null to break the line
+        // Unless it's the current month, where we show the value
+        const shouldShow = !isCurrentYear || i <= currentMonthIndex;
+
         result.push({
           month: monthNames[i],
-          cumulative: Math.round(cumulative * 100) / 100,
+          cumulative: shouldShow
+            ? Math.round(cumulative * 100) / 100
+            : (null as unknown as number), // Cast to satisfy type, Recharts handles null
         });
       }
     }
@@ -1193,7 +1206,7 @@ export function useStatistics(params?: UseStatisticsParams) {
         ),
         trend:
           monthlyNetBalance >=
-          previousMonthStats.income - previousMonthStats.expense
+            previousMonthStats.income - previousMonthStats.expense
             ? "up"
             : "down",
       },
@@ -1201,14 +1214,14 @@ export function useStatistics(params?: UseStatisticsParams) {
         current:
           monthlyStats.income > 0
             ? ((monthlyStats.income - monthlyStats.expense) /
-                monthlyStats.income) *
-              100
+              monthlyStats.income) *
+            100
             : 0,
         previous:
           previousMonthStats.income > 0
             ? ((previousMonthStats.income - previousMonthStats.expense) /
-                previousMonthStats.income) *
-              100
+              previousMonthStats.income) *
+            100
             : 0,
       },
     };
@@ -1255,7 +1268,7 @@ export function useStatistics(params?: UseStatisticsParams) {
         ),
         trend:
           yearlyNetBalance >=
-          previousYearStats.income - previousYearStats.expense
+            previousYearStats.income - previousYearStats.expense
             ? "up"
             : "down",
       },
@@ -1263,14 +1276,14 @@ export function useStatistics(params?: UseStatisticsParams) {
         current:
           yearlyStats.income > 0
             ? ((yearlyStats.income - yearlyStats.expense) /
-                yearlyStats.income) *
-              100
+              yearlyStats.income) *
+            100
             : 0,
         previous:
           previousYearStats.income > 0
             ? ((previousYearStats.income - previousYearStats.expense) /
-                previousYearStats.income) *
-              100
+              previousYearStats.income) *
+            100
             : 0,
       },
     };
@@ -1298,8 +1311,8 @@ export function useStatistics(params?: UseStatisticsParams) {
           previous > 0
             ? ((current - previous) / previous) * 100
             : current > 0
-            ? 100
-            : 0;
+              ? 100
+              : 0;
 
         return {
           name,

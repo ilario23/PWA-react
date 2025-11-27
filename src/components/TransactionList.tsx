@@ -17,6 +17,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getIconComponent } from "@/lib/icons";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { UI_DEFAULTS } from "@/lib/constants";
+import { format, isToday, isYesterday, parseISO } from "date-fns";
+import { it, enUS } from "date-fns/locale";
+import { MobileTransactionRow } from "./MobileTransactionRow";
 
 interface TransactionListProps {
   transactions: Transaction[] | undefined;
@@ -31,8 +34,13 @@ interface TransactionListProps {
 }
 
 // Row heights for virtualization
-const MOBILE_ROW_HEIGHT = 120;
+const MOBILE_ROW_HEIGHT = 80; // Reduced height for compact row + margin
+const MOBILE_HEADER_HEIGHT = 40;
 const DESKTOP_ROW_HEIGHT = 53;
+
+type GroupedItem =
+  | { type: "header"; date: string; label: string }
+  | { type: "transaction"; data: Transaction };
 
 export function TransactionList({
   transactions,
@@ -44,7 +52,7 @@ export function TransactionList({
   isLoading = false,
   height,
 }: TransactionListProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isMobile = useMobile();
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -91,117 +99,48 @@ export function TransactionList({
     }
   };
 
+  // Group transactions by date
+  const groupedItems = useMemo(() => {
+    if (!transactions) return [];
+    const items: GroupedItem[] = [];
+    let lastDate = "";
+
+    transactions.forEach((transaction) => {
+      if (transaction.date !== lastDate) {
+        const dateObj = parseISO(transaction.date);
+        let label = format(dateObj, "d MMMM yyyy", {
+          locale: i18n.language === "it" ? it : enUS,
+        });
+
+        if (isToday(dateObj)) {
+          label = t("today");
+        } else if (isYesterday(dateObj)) {
+          label = t("yesterday");
+        }
+
+        items.push({ type: "header", date: transaction.date, label });
+        lastDate = transaction.date;
+      }
+      items.push({ type: "transaction", data: transaction });
+    });
+
+    return items;
+  }, [transactions, t, i18n.language]);
+
   // Virtualizer for large lists
   const rowVirtualizer = useVirtualizer({
-    count: transactions?.length ?? 0,
+    count: isMobile ? groupedItems.length : (transactions?.length ?? 0),
     getScrollElement: () => parentRef.current,
-    estimateSize: () => (isMobile ? MOBILE_ROW_HEIGHT : DESKTOP_ROW_HEIGHT),
+    estimateSize: (index) => {
+      if (isMobile) {
+        return groupedItems[index].type === "header"
+          ? MOBILE_HEADER_HEIGHT
+          : MOBILE_ROW_HEIGHT;
+      }
+      return DESKTOP_ROW_HEIGHT;
+    },
     overscan: 5,
   });
-
-  // Memoized row renderer for mobile
-  const renderMobileRow = useCallback(
-    (t_item: Transaction, index: number, isVirtual: boolean) => {
-      const category = getCategory(t_item.category_id);
-      const context = getContext(t_item.context_id);
-      const IconComp = category?.icon ? getIconComponent(category.icon) : null;
-
-      const animationProps =
-        !isVirtual && index < 20
-          ? {
-              className:
-                "rounded-lg border bg-card p-4 shadow-sm animate-slide-in-up opacity-0 fill-mode-forwards",
-              style: { animationDelay: `${index * 0.05}s` },
-            }
-          : {
-              className: "rounded-lg border bg-card p-4 shadow-sm",
-            };
-
-      return (
-        <article
-          key={t_item.id}
-          {...animationProps}
-          aria-label={`${
-            t_item.description || t("transaction")
-          }: €${t_item.amount.toFixed(2)} ${t(t_item.type)}`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <time
-              className="font-medium text-sm text-muted-foreground"
-              dateTime={t_item.date}
-            >
-              {t_item.date}
-            </time>
-            <div
-              className={`font-bold ${getTypeTextColor(t_item.type)}`}
-              aria-label={`${t("amount")}: €${t_item.amount.toFixed(2)}`}
-            >
-              {t_item.type === "expense"
-                ? "-"
-                : t_item.type === "investment"
-                ? ""
-                : "+"}
-              €{t_item.amount.toFixed(2)}
-            </div>
-          </div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="font-medium">{t_item.description || "-"}</div>
-            <SyncStatusBadge isPending={t_item.pendingSync === 1} />
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md flex items-center gap-1">
-                {IconComp && (
-                  <IconComp className="h-3 w-3" aria-hidden="true" />
-                )}
-                <span>{category?.name || "-"}</span>
-              </div>
-              {context && (
-                <div className="text-xs text-muted-foreground bg-primary/10 text-primary px-2 py-1 rounded-md flex items-center gap-1">
-                  <Tag className="h-3 w-3" aria-hidden="true" />
-                  <span>{context.name}</span>
-                </div>
-              )}
-            </div>
-            {showActions && (
-              <div
-                className="flex gap-2"
-                role="group"
-                aria-label={t("actions")}
-              >
-                {onEdit && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => onEdit(t_item)}
-                    aria-label={t("edit")}
-                  >
-                    <Edit className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                )}
-                {onDelete && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => onDelete(t_item.id)}
-                    aria-label={t("delete")}
-                  >
-                    <Trash2
-                      className="h-4 w-4 text-destructive"
-                      aria-hidden="true"
-                    />
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-        </article>
-      );
-    },
-    [getCategory, getContext, onEdit, onDelete, showActions, t]
-  );
 
   // Memoized row renderer for desktop
   const renderDesktopRow = useCallback(
@@ -213,9 +152,9 @@ export function TransactionList({
       const animationProps =
         !isVirtual && index < 20
           ? {
-              className: "animate-slide-in-up opacity-0 fill-mode-forwards",
-              style: { animationDelay: `${index * 0.03}s` },
-            }
+            className: "animate-slide-in-up opacity-0 fill-mode-forwards",
+            style: { animationDelay: `${index * 0.03}s` },
+          }
           : {};
 
       return (
@@ -250,8 +189,8 @@ export function TransactionList({
             {t_item.type === "expense"
               ? "-"
               : t_item.type === "investment"
-              ? ""
-              : "+"}
+                ? ""
+                : "+"}
             €{t_item.amount.toFixed(2)}
           </TableCell>
           {showActions && (
@@ -342,7 +281,28 @@ export function TransactionList({
             }}
           >
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const t_item = transactions[virtualRow.index];
+              const item = groupedItems[virtualRow.index];
+
+              if (item.type === "header") {
+                return (
+                  <div
+                    key={virtualRow.key}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: `${virtualRow.size}px`,
+                      transform: `translateY(${virtualRow.start}px)`,
+                      padding: "8px 4px",
+                    }}
+                    className="font-semibold text-sm text-muted-foreground sticky z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+                  >
+                    {item.label}
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={virtualRow.key}
@@ -353,10 +313,17 @@ export function TransactionList({
                     width: "100%",
                     height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
-                    padding: "8px 0",
+                    padding: "0 4px",
                   }}
                 >
-                  {renderMobileRow(t_item, virtualRow.index, true)}
+                  <MobileTransactionRow
+                    transaction={item.data}
+                    category={getCategory(item.data.category_id)}
+                    context={getContext(item.data.context_id)}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    isVirtual={true}
+                  />
                 </div>
               );
             })}
@@ -367,10 +334,30 @@ export function TransactionList({
 
     // Non-virtualized mobile list for small datasets
     return (
-      <div className="space-y-4">
-        {transactions.map((t_item, index) =>
-          renderMobileRow(t_item, index, false)
-        )}
+      <div className="space-y-1">
+        {groupedItems.map((item, index) => {
+          if (item.type === "header") {
+            return (
+              <div
+                key={`header-${item.date}`}
+                className="font-semibold text-sm text-muted-foreground pt-4 pb-2 px-1 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+              >
+                {item.label}
+              </div>
+            );
+          }
+          return (
+            <MobileTransactionRow
+              key={item.data.id}
+              transaction={item.data}
+              category={getCategory(item.data.category_id)}
+              context={getContext(item.data.context_id)}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              isVirtual={false}
+            />
+          );
+        })}
       </div>
     );
   }

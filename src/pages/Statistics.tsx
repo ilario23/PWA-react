@@ -31,8 +31,7 @@ import {
   RadarChart,
   PolarAngleAxis,
   PolarGrid,
-  LineChart,
-  Line,
+
   ComposedChart,
   AreaChart,
   Area,
@@ -120,11 +119,11 @@ export function StatisticsPage() {
   const isLoading =
     activeTab === "monthly"
       ? monthlyStats.income === 0 &&
-        monthlyStats.expense === 0 &&
-        monthlyStats.investment === 0
+      monthlyStats.expense === 0 &&
+      monthlyStats.investment === 0
       : yearlyStats.income === 0 &&
-        yearlyStats.expense === 0 &&
-        yearlyStats.investment === 0;
+      yearlyStats.expense === 0 &&
+      yearlyStats.investment === 0;
 
   // Determine which stats to display based on active tab
   const currentStats = activeTab === "monthly" ? monthlyStats : yearlyStats;
@@ -550,9 +549,8 @@ export function StatisticsPage() {
                 </CardHeader>
                 <CardContent className="pb-2 md:pb-6">
                   <div
-                    className={`text-lg md:text-2xl font-bold ${
-                      currentNetBalance >= 0 ? "text-green-500" : "text-red-500"
-                    }`}
+                    className={`text-lg md:text-2xl font-bold ${currentNetBalance >= 0 ? "text-green-500" : "text-red-500"
+                      }`}
                   >
                     {currentNetBalance >= 0 ? "+" : ""}€
                     {currentNetBalance.toFixed(2)}
@@ -572,11 +570,10 @@ export function StatisticsPage() {
                 </CardHeader>
                 <CardContent className="pb-2 md:pb-6">
                   <div
-                    className={`text-lg md:text-2xl font-bold ${
-                      yearlyMonthlyAverages.netBalance >= 0
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
+                    className={`text-lg md:text-2xl font-bold ${yearlyMonthlyAverages.netBalance >= 0
+                      ? "text-green-500"
+                      : "text-red-500"
+                      }`}
                   >
                     {yearlyMonthlyAverages.netBalance >= 0 ? "+" : ""}€
                     {yearlyMonthlyAverages.netBalance.toFixed(2)}
@@ -600,9 +597,8 @@ export function StatisticsPage() {
             </CardHeader>
             <CardContent className="pb-2 md:pb-6">
               <div
-                className={`text-lg md:text-2xl font-bold ${
-                  currentNetBalance >= 0 ? "text-green-500" : "text-red-500"
-                }`}
+                className={`text-lg md:text-2xl font-bold ${currentNetBalance >= 0 ? "text-green-500" : "text-red-500"
+                  }`}
               >
                 {currentNetBalance >= 0 ? "+" : ""}€
                 {currentNetBalance.toFixed(2)}
@@ -621,14 +617,13 @@ export function StatisticsPage() {
           <CardContent className="pb-2 md:pb-6">
             {currentStats.income > 0 ? (
               <div
-                className={`text-lg md:text-2xl font-bold ${
-                  ((currentStats.income - currentStats.expense) /
-                    currentStats.income) *
-                    100 >=
+                className={`text-lg md:text-2xl font-bold ${((currentStats.income - currentStats.expense) /
+                  currentStats.income) *
+                  100 >=
                   0
-                    ? "text-green-500"
-                    : "text-red-500"
-                }`}
+                  ? "text-green-500"
+                  : "text-red-500"
+                  }`}
               >
                 {(
                   ((currentStats.income - currentStats.expense) /
@@ -655,16 +650,15 @@ export function StatisticsPage() {
           <CardContent className="pb-2 md:pb-6">
             {currentStats.income > 0 ? (
               <div
-                className={`text-lg md:text-2xl font-bold ${
-                  ((currentStats.income -
-                    currentStats.expense -
-                    currentStats.investment) /
-                    currentStats.income) *
-                    100 >=
+                className={`text-lg md:text-2xl font-bold ${((currentStats.income -
+                  currentStats.expense -
+                  currentStats.investment) /
+                  currentStats.income) *
+                  100 >=
                   0
-                    ? "text-green-500"
-                    : "text-red-500"
-                }`}
+                  ? "text-green-500"
+                  : "text-red-500"
+                  }`}
               >
                 {(
                   ((currentStats.income -
@@ -839,8 +833,8 @@ export function StatisticsPage() {
               <CardTitle>{t("period_comparison")}</CardTitle>
               <CardDescription>
                 {t("comparison_vs_previous_month", {
-                  current: selectedMonth,
-                  previous: previousMonth,
+                  current: format(new Date(selectedMonth), "MMMM"),
+                  previous: format(new Date(previousMonth), "MMMM"),
                 })}
               </CardDescription>
             </CardHeader>
@@ -853,24 +847,21 @@ export function StatisticsPage() {
                   </label>
                   <div className="flex gap-2">
                     <Select
-                      value={comparisonMonth?.split("-")[1] || "auto"}
+                      value={
+                        comparisonMonth?.split("-")[1] ||
+                        previousMonth.split("-")[1]
+                      }
                       onValueChange={(value) => {
-                        if (value === "auto") {
-                          setComparisonMonth(undefined);
-                        } else {
-                          const year =
-                            comparisonMonth?.split("-")[0] || selectedYear;
-                          setComparisonMonth(`${year}-${value}`);
-                        }
+                        const year =
+                          comparisonMonth?.split("-")[0] ||
+                          previousMonth.split("-")[0];
+                        setComparisonMonth(`${year}-${value}`);
                       }}
                     >
                       <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder={t("previous_month")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="auto">
-                          {t("previous_month")}
-                        </SelectItem>
                         {months.map((month) => (
                           <SelectItem key={month.value} value={month.value}>
                             {month.label}
@@ -878,30 +869,29 @@ export function StatisticsPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {comparisonMonth ? (
-                      <Select
-                        value={comparisonMonth.split("-")[0]}
-                        onValueChange={(year) => {
-                          const month = comparisonMonth.split("-")[1];
-                          setComparisonMonth(`${year}-${month}`);
-                        }}
-                      >
-                        <SelectTrigger className="w-[100px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {years.map((year) => (
-                            <SelectItem key={year} value={year}>
-                              {year}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <div className="flex items-center justify-center px-3 h-10 w-[100px] rounded-md border bg-muted text-sm font-medium text-muted-foreground">
-                        {selectedYear}
-                      </div>
-                    )}
+                    <Select
+                      value={
+                        comparisonMonth?.split("-")[0] ||
+                        previousMonth.split("-")[0]
+                      }
+                      onValueChange={(year) => {
+                        const month =
+                          comparisonMonth?.split("-")[1] ||
+                          previousMonth.split("-")[1];
+                        setComparisonMonth(`${year}-${month}`);
+                      }}
+                    >
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {years.map((year) => (
+                          <SelectItem key={year} value={year}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
@@ -915,11 +905,10 @@ export function StatisticsPage() {
                     €{monthlyComparison.income.current.toFixed(0)}
                   </div>
                   <div
-                    className={`text-xs flex items-center gap-1 ${
-                      monthlyComparison.income.trend === "up"
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
+                    className={`text-xs flex items-center gap-1 ${monthlyComparison.income.trend === "up"
+                      ? "text-green-500"
+                      : "text-red-500"
+                      }`}
                   >
                     {monthlyComparison.income.trend === "up" ? (
                       <ArrowUp className="h-3 w-3" />
@@ -938,14 +927,13 @@ export function StatisticsPage() {
                     €{monthlyComparison.expense.current.toFixed(0)}
                   </div>
                   <div
-                    className={`text-xs flex items-center gap-1 ${
-                      monthlyComparison.expense.trend === "up"
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
+                    className={`text-xs flex items-center gap-1 ${monthlyComparison.expense.trend === "up"
+                      ? "text-green-500"
+                      : "text-red-500"
+                      }`}
                   >
                     {monthlyComparison.expense.current <=
-                    monthlyComparison.expense.previous ? (
+                      monthlyComparison.expense.previous ? (
                       <ArrowDown className="h-3 w-3" />
                     ) : (
                       <ArrowUp className="h-3 w-3" />
@@ -959,20 +947,18 @@ export function StatisticsPage() {
                     {t("balance")}
                   </div>
                   <div
-                    className={`text-xl font-bold ${
-                      monthlyComparison.balance.current >= 0
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
+                    className={`text-xl font-bold ${monthlyComparison.balance.current >= 0
+                      ? "text-green-500"
+                      : "text-red-500"
+                      }`}
                   >
                     €{monthlyComparison.balance.current.toFixed(0)}
                   </div>
                   <div
-                    className={`text-xs flex items-center gap-1 ${
-                      monthlyComparison.balance.trend === "up"
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
+                    className={`text-xs flex items-center gap-1 ${monthlyComparison.balance.trend === "up"
+                      ? "text-green-500"
+                      : "text-red-500"
+                      }`}
                   >
                     {monthlyComparison.balance.trend === "up" ? (
                       <ArrowUp className="h-3 w-3" />
@@ -988,11 +974,10 @@ export function StatisticsPage() {
                     {t("saving_rate")}
                   </div>
                   <div
-                    className={`text-xl font-bold ${
-                      monthlyComparison.savingRate.current >= 0
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
+                    className={`text-xl font-bold ${monthlyComparison.savingRate.current >= 0
+                      ? "text-green-500"
+                      : "text-red-500"
+                      }`}
                   >
                     {monthlyComparison.savingRate.current.toFixed(1)}%
                   </div>
@@ -1017,8 +1002,8 @@ export function StatisticsPage() {
                           color: "hsl(0 84.2% 60.2% )",
                         },
                         previous: {
-                          label: t("previous_month"),
-                          color: "hsl(0 84.2% 60.2% )",
+                          label: format(new Date(previousMonth), "MMMM yyyy"),
+                          color: "hsl(var(--muted-foreground))",
                         },
                       }}
                       className="h-[250px] w-full"
@@ -1130,7 +1115,7 @@ export function StatisticsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="auto">
-                            {t("previous_month")}
+                            {format(new Date(previousMonth), "MMMM yyyy")}
                           </SelectItem>
                           {months.map((month) => (
                             <SelectItem key={month.value} value={month.value}>
@@ -1180,11 +1165,10 @@ export function StatisticsPage() {
                           €{cat.previous.toFixed(0)} → €{cat.current.toFixed(0)}
                         </span>
                         <div
-                          className={`flex items-center gap-1 text-sm ${
-                            cat.trend === "improved"
-                              ? "text-green-500"
-                              : "text-red-500"
-                          }`}
+                          className={`flex items-center gap-1 text-sm ${cat.trend === "improved"
+                            ? "text-green-500"
+                            : "text-red-500"
+                            }`}
                         >
                           {cat.trend === "improved" ? (
                             <ArrowDown className="h-3 w-3" />
@@ -1488,20 +1472,15 @@ export function StatisticsPage() {
                     {t("compare_with")}
                   </label>
                   <Select
-                    value={comparisonYear || "auto"}
+                    value={comparisonYear || previousYear}
                     onValueChange={(value) => {
-                      if (value === "auto") {
-                        setComparisonYear(undefined);
-                      } else {
-                        setComparisonYear(value);
-                      }
+                      setComparisonYear(value);
                     }}
                   >
                     <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder={t("previous_year")} />
+                      <SelectValue placeholder={previousYear} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="auto">{t("previous_year")}</SelectItem>
                       {years.map((year) => (
                         <SelectItem key={year} value={year}>
                           {year}
@@ -1521,11 +1500,10 @@ export function StatisticsPage() {
                     €{yearlyComparison.income.current.toFixed(0)}
                   </div>
                   <div
-                    className={`text-xs flex items-center gap-1 ${
-                      yearlyComparison.income.trend === "up"
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
+                    className={`text-xs flex items-center gap-1 ${yearlyComparison.income.trend === "up"
+                      ? "text-green-500"
+                      : "text-red-500"
+                      }`}
                   >
                     {yearlyComparison.income.trend === "up" ? (
                       <ArrowUp className="h-3 w-3" />
@@ -1544,14 +1522,13 @@ export function StatisticsPage() {
                     €{yearlyComparison.expense.current.toFixed(0)}
                   </div>
                   <div
-                    className={`text-xs flex items-center gap-1 ${
-                      yearlyComparison.expense.trend === "up"
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
+                    className={`text-xs flex items-center gap-1 ${yearlyComparison.expense.trend === "up"
+                      ? "text-green-500"
+                      : "text-red-500"
+                      }`}
                   >
                     {yearlyComparison.expense.current <=
-                    yearlyComparison.expense.previous ? (
+                      yearlyComparison.expense.previous ? (
                       <ArrowDown className="h-3 w-3" />
                     ) : (
                       <ArrowUp className="h-3 w-3" />
@@ -1565,20 +1542,18 @@ export function StatisticsPage() {
                     {t("balance")}
                   </div>
                   <div
-                    className={`text-xl font-bold ${
-                      yearlyComparison.balance.current >= 0
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
+                    className={`text-xl font-bold ${yearlyComparison.balance.current >= 0
+                      ? "text-green-500"
+                      : "text-red-500"
+                      }`}
                   >
                     €{yearlyComparison.balance.current.toFixed(0)}
                   </div>
                   <div
-                    className={`text-xs flex items-center gap-1 ${
-                      yearlyComparison.balance.trend === "up"
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
+                    className={`text-xs flex items-center gap-1 ${yearlyComparison.balance.trend === "up"
+                      ? "text-green-500"
+                      : "text-red-500"
+                      }`}
                   >
                     {yearlyComparison.balance.trend === "up" ? (
                       <ArrowUp className="h-3 w-3" />
@@ -1594,11 +1569,10 @@ export function StatisticsPage() {
                     {t("saving_rate")}
                   </div>
                   <div
-                    className={`text-xl font-bold ${
-                      yearlyComparison.savingRate.current >= 0
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
+                    className={`text-xl font-bold ${yearlyComparison.savingRate.current >= 0
+                      ? "text-green-500"
+                      : "text-red-500"
+                      }`}
                   >
                     {yearlyComparison.savingRate.current.toFixed(1)}%
                   </div>
@@ -1698,10 +1672,66 @@ export function StatisticsPage() {
                     }}
                     className="h-[350px] w-full"
                   >
-                    <LineChart
+                    <AreaChart
                       data={monthlyTrendData}
                       margin={{ left: 12, right: 12, top: 12, bottom: 12 }}
                     >
+                      <defs>
+                        <linearGradient
+                          id="incomeGradient"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="var(--color-income)"
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="var(--color-income)"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="expenseGradient"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="var(--color-expense)"
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="var(--color-expense)"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="balanceGradient"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="var(--color-balance)"
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="var(--color-balance)"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="period"
@@ -1716,29 +1746,29 @@ export function StatisticsPage() {
                       />
                       <ChartTooltip content={<ChartTooltipContent />} />
                       <ChartLegend content={<ChartLegendContent />} />
-                      <Line
+                      <Area
                         type="monotone"
                         dataKey="income"
                         stroke="var(--color-income)"
+                        fill="url(#incomeGradient)"
                         strokeWidth={2}
-                        dot={false}
                       />
-                      <Line
+                      <Area
                         type="monotone"
                         dataKey="expense"
                         stroke="var(--color-expense)"
+                        fill="url(#expenseGradient)"
                         strokeWidth={2}
-                        dot={false}
                       />
-                      <Line
+                      <Area
                         type="monotone"
                         dataKey="balance"
                         stroke="var(--color-balance)"
+                        fill="url(#balanceGradient)"
                         strokeWidth={2}
                         strokeDasharray="5 5"
-                        dot={false}
                       />
-                    </LineChart>
+                    </AreaChart>
                   </ChartContainer>
                 </LazyChart>
               ) : (
@@ -1820,9 +1850,8 @@ export function StatisticsPage() {
                       <div
                         className="w-3 h-3 rounded-full"
                         style={{
-                          backgroundColor: `hsl(var(--chart-${
-                            (index % 5) + 1
-                          }))`,
+                          backgroundColor: `hsl(var(--chart-${(index % 5) + 1
+                            }))`,
                         }}
                       />
                       <span className="font-semibold">{ctx.name}</span>
@@ -1901,10 +1930,10 @@ export function StatisticsPage() {
             {(activeTab === "monthly" ? burnRate : yearlyBurnRate).noBudget ? (
               <Activity className="h-5 w-5 text-muted-foreground" />
             ) : (activeTab === "monthly" ? burnRate : yearlyBurnRate)
-                .onTrack ? (
-              <Activity className="h-5 w-5 text-green-500" />
+              .onTrack ? (
+              <Activity className="h-5 w-5 text-destructive" />
             ) : (
-              <AlertCircle className="h-5 w-5 text-red-500" />
+              <AlertCircle className="h-5 w-5 text-destructive" />
             )}
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1929,15 +1958,14 @@ export function StatisticsPage() {
                     : t("projected_year_end")}
                 </div>
                 <div
-                  className={`text-2xl font-bold ${
-                    (activeTab === "monthly" ? burnRate : yearlyBurnRate)
-                      .noBudget
-                      ? "text-foreground"
-                      : (activeTab === "monthly" ? burnRate : yearlyBurnRate)
-                          .onTrack
-                      ? "text-green-500"
-                      : "text-red-500"
-                  }`}
+                  className={`text-2xl font-bold ${(activeTab === "monthly" ? burnRate : yearlyBurnRate)
+                    .noBudget
+                    ? "text-foreground"
+                    : (activeTab === "monthly" ? burnRate : yearlyBurnRate)
+                      .onTrack
+                      ? "text-destructive"
+                      : "text-destructive"
+                    }`}
                 >
                   €
                   {(activeTab === "monthly"
@@ -1966,25 +1994,23 @@ export function StatisticsPage() {
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
                 <div
-                  className={`h-full ${
-                    (activeTab === "monthly" ? burnRate : yearlyBurnRate)
-                      .noBudget
-                      ? "bg-muted-foreground"
-                      : (activeTab === "monthly" ? burnRate : yearlyBurnRate)
-                          .onTrack
-                      ? "bg-green-500"
-                      : "bg-red-500"
-                  }`}
+                  className={`h-full ${(activeTab === "monthly" ? burnRate : yearlyBurnRate)
+                    .noBudget
+                    ? "bg-muted-foreground"
+                    : (activeTab === "monthly" ? burnRate : yearlyBurnRate)
+                      .onTrack
+                      ? "bg-destructive"
+                      : "bg-destructive"
+                    }`}
                   style={{
-                    width: `${
+                    width: `${((activeTab === "monthly" ? burnRate : yearlyBurnRate)
+                      .daysElapsed /
                       ((activeTab === "monthly" ? burnRate : yearlyBurnRate)
-                        .daysElapsed /
-                        ((activeTab === "monthly" ? burnRate : yearlyBurnRate)
-                          .daysElapsed +
-                          (activeTab === "monthly" ? burnRate : yearlyBurnRate)
-                            .daysRemaining)) *
+                        .daysElapsed +
+                        (activeTab === "monthly" ? burnRate : yearlyBurnRate)
+                          .daysRemaining)) *
                       100
-                    }%`,
+                      }%`,
                   }}
                 />
               </div>

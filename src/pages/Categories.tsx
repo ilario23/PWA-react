@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React from "react";
+import { useState, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useTranslation } from "react-i18next";
 import { useCategories } from "@/hooks/useCategories";
@@ -46,6 +47,9 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import type { Category } from "@/lib/db";
+import { MobileCategoryRow } from "@/components/MobileCategoryRow";
+import { useMobile } from "@/hooks/useMobile";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Types for recursive components
 interface CategoryListProps {
@@ -91,13 +95,11 @@ function MobileCategoryList({
             onOpenChange={() => toggleCategory(c.id)}
           >
             <div
-              className={`rounded-lg border bg-card shadow-sm transition-opacity ${
-                isRoot && index < 20
-                  ? "animate-slide-in-up opacity-0 fill-mode-forwards"
-                  : ""
-              } ${
-                !isRoot ? "ml-4 border-l-2 border-l-muted-foreground/20" : ""
-              } ${isInactive ? "opacity-50" : ""}`}
+              className={`rounded-lg border bg-card shadow-sm transition-opacity ${isRoot && index < 20
+                ? "animate-slide-in-up opacity-0 fill-mode-forwards"
+                : ""
+                } ${!isRoot ? "ml-4 border-l-2 border-l-muted-foreground/20" : ""
+                } ${isInactive ? "opacity-50" : ""}`}
               style={
                 isRoot && index < 20
                   ? { animationDelay: `${index * 0.05}s` }
@@ -131,11 +133,9 @@ function MobileCategoryList({
                       <div className="w-8 shrink-0" />
                     )}
                     <div
-                      className={`${
-                        isRoot ? "h-8 w-8" : "h-6 w-6"
-                      } rounded-full flex items-center justify-center text-white shrink-0 ${
-                        isInactive ? "grayscale" : ""
-                      }`}
+                      className={`${isRoot ? "h-8 w-8" : "h-6 w-6"
+                        } rounded-full flex items-center justify-center text-white shrink-0 ${isInactive ? "grayscale" : ""
+                        }`}
                       style={{ backgroundColor: c.color }}
                     >
                       {c.icon &&
@@ -150,9 +150,8 @@ function MobileCategoryList({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div
-                        className={`${
-                          isRoot ? "font-medium" : "font-medium text-sm"
-                        } flex items-center gap-2 flex-wrap`}
+                        className={`${isRoot ? "font-medium" : "font-medium text-sm"
+                          } flex items-center gap-2 flex-wrap`}
                       >
                         <span className="truncate">{c.name}</span>
                         {isInactive && (
@@ -238,23 +237,20 @@ function DesktopCategoryRows({
         return (
           <React.Fragment key={c.id}>
             <TableRow
-              className={`${
-                isRoot && index < 20
-                  ? "animate-slide-in-up opacity-0 fill-mode-forwards"
-                  : !isRoot
+              className={`${isRoot && index < 20
+                ? "animate-slide-in-up opacity-0 fill-mode-forwards"
+                : !isRoot
                   ? "animate-fade-in"
                   : ""
-              } ${
-                children.length > 0 ? "cursor-pointer hover:bg-muted/50" : ""
-              } ${!isRoot ? "bg-muted/20" : ""} ${
-                isInactive ? "opacity-50" : ""
-              }`}
+                } ${children.length > 0 ? "cursor-pointer hover:bg-muted/50" : ""
+                } ${!isRoot ? "bg-muted/20" : ""} ${isInactive ? "opacity-50" : ""
+                }`}
               style={
                 isRoot && index < 20
                   ? { animationDelay: `${index * 0.03}s` }
                   : !isRoot
-                  ? { animationDelay: `${index * 0.03}s` }
-                  : {}
+                    ? { animationDelay: `${index * 0.03}s` }
+                    : {}
               }
             >
               <TableCell className="w-8">
@@ -285,9 +281,8 @@ function DesktopCategoryRows({
                     <div className="w-4 h-4 border-l-2 border-b-2 border-muted-foreground/30 rounded-bl shrink-0" />
                   )}
                   <div
-                    className={`${
-                      isRoot ? "h-4 w-4" : "h-3 w-3"
-                    } rounded-full shrink-0 ${isInactive ? "grayscale" : ""}`}
+                    className={`${isRoot ? "h-4 w-4" : "h-3 w-3"
+                      } rounded-full shrink-0 ${isInactive ? "grayscale" : ""}`}
                     style={{ backgroundColor: c.color }}
                   />
                   {c.icon &&
@@ -320,9 +315,8 @@ function DesktopCategoryRows({
                 ) : (
                   <Badge
                     variant="outline"
-                    className={`text-green-600 border-green-600 ${
-                      isRoot ? "" : "text-xs"
-                    }`}
+                    className={`text-green-600 border-green-600 ${isRoot ? "" : "text-xs"
+                      }`}
                   >
                     {t("active") || "Active"}
                   </Badge>
@@ -376,6 +370,7 @@ export function CategoriesPage() {
     getBudgetForCategory,
   } = useCategoryBudgets();
   const { user } = useAuth();
+  const isMobile = useMobile();
 
   // Fetch all transactions to check for associations
   const transactions = useLiveQuery(async () => {
@@ -402,6 +397,9 @@ export function CategoriesPage() {
   // Filter State
   const [showInactive, setShowInactive] = useState(false);
 
+  // Expanded categories state for mobile collapse/expand
+  const [expandedCategoryIds, setExpandedCategoryIds] = useState<Set<string>>(new Set());
+
   // Conflict Resolution State
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
   const [conflictData, setConflictData] = useState<{
@@ -418,6 +416,7 @@ export function CategoriesPage() {
     icon: "",
     parent_id: "",
     active: true,
+    budget: "", // Budget amount for expense categories
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -463,16 +462,35 @@ export function CategoriesPage() {
         parent_id: formData.parent_id || undefined,
         active: formData.active ? 1 : 0,
       });
+
+      // Handle budget for expense categories
+      if (formData.type === "expense" && formData.budget) {
+        await setCategoryBudget(editingId, parseFloat(formData.budget));
+      } else if (formData.type === "expense" && !formData.budget) {
+        // Remove budget if field is empty
+        await removeCategoryBudget(editingId);
+      }
     } else {
+      // Generate ID upfront so we can use it for budget
+      const newCategoryId = crypto.randomUUID();
+
       await addCategory({
-        user_id: user.id,
-        name: formData.name,
-        color: formData.color,
-        type: formData.type,
-        icon: formData.icon,
-        parent_id: formData.parent_id || undefined,
-        active: formData.active ? 1 : 0,
+        ...({
+          id: newCategoryId,
+          user_id: user.id,
+          name: formData.name,
+          color: formData.color,
+          type: formData.type,
+          icon: formData.icon,
+          parent_id: formData.parent_id || undefined,
+          active: formData.active ? 1 : 0,
+        } as any),
       });
+
+      // Handle budget for expense categories  
+      if (formData.type === "expense" && formData.budget) {
+        await setCategoryBudget(newCategoryId, parseFloat(formData.budget));
+      }
     }
     setIsOpen(false);
     setEditingId(null);
@@ -483,11 +501,15 @@ export function CategoriesPage() {
       icon: "",
       parent_id: "",
       active: true,
+      budget: "",
     });
   };
 
   const handleEdit = (category: any) => {
     setEditingId(category.id);
+    // Get budget for this category if it's an expense
+    const categoryBudget = category.type === "expense" ? getBudgetForCategory(category.id) : null;
+
     setFormData({
       name: category.name,
       color: category.color,
@@ -495,6 +517,7 @@ export function CategoriesPage() {
       icon: category.icon || "",
       parent_id: category.parent_id || "",
       active: category.active !== 0,
+      budget: categoryBudget ? categoryBudget.amount.toString() : "",
     });
     setIsOpen(true);
   };
@@ -508,6 +531,7 @@ export function CategoriesPage() {
       icon: "",
       parent_id: "",
       active: true,
+      budget: "",
     });
     setIsOpen(true);
   };
@@ -528,7 +552,7 @@ export function CategoriesPage() {
       // Show warning about transactions
       alert(
         t("category_has_transactions_warning", { count: transactionCount }) ||
-          `Warning: This category has ${transactionCount} associated transaction(s). Deleting it will leave these transactions without a category.`
+        `Warning: This category has ${transactionCount} associated transaction(s). Deleting it will leave these transactions without a category.`
       );
     }
 
@@ -593,6 +617,7 @@ export function CategoriesPage() {
         icon: "",
         parent_id: "",
         active: true,
+        budget: "",
       });
     }
 
@@ -716,11 +741,10 @@ export function CategoriesPage() {
           {/* Show Inactive Toggle */}
           <button
             onClick={() => setShowInactive(!showInactive)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              showInactive
-                ? "bg-muted text-foreground"
-                : "text-muted-foreground hover:bg-muted/50"
-            }`}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${showInactive
+              ? "bg-muted text-foreground"
+              : "text-muted-foreground hover:bg-muted/50"
+              }`}
           >
             <EyeOff className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">
@@ -781,11 +805,10 @@ export function CategoriesPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${
-                        formData.type === "expense"
-                          ? "bg-red-500 hover:bg-red-600 text-white"
-                          : ""
-                      }`}
+                      className={`w-full ${formData.type === "expense"
+                        ? "bg-red-500 hover:bg-red-600 text-white"
+                        : ""
+                        }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "expense" })
                       }
@@ -795,11 +818,10 @@ export function CategoriesPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${
-                        formData.type === "income"
-                          ? "bg-green-500 hover:bg-green-600 text-white"
-                          : ""
-                      }`}
+                      className={`w-full ${formData.type === "income"
+                        ? "bg-green-500 hover:bg-green-600 text-white"
+                        : ""
+                        }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "income" })
                       }
@@ -809,11 +831,10 @@ export function CategoriesPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className={`w-full ${
-                        formData.type === "investment"
-                          ? "bg-blue-500 hover:bg-blue-600 text-white"
-                          : ""
-                      }`}
+                      className={`w-full ${formData.type === "investment"
+                        ? "bg-blue-500 hover:bg-blue-600 text-white"
+                        : ""
+                        }`}
                       onClick={() =>
                         setFormData({ ...formData, type: "investment" })
                       }
@@ -831,11 +852,10 @@ export function CategoriesPage() {
                         <button
                           key={item.name}
                           type="button"
-                          className={`p-2 rounded-md flex items-center justify-center hover:bg-accent ${
-                            formData.icon === item.name
-                              ? "bg-accent ring-2 ring-primary"
-                              : ""
-                          }`}
+                          className={`p-2 rounded-md flex items-center justify-center hover:bg-accent ${formData.icon === item.name
+                            ? "bg-accent ring-2 ring-primary"
+                            : ""
+                            }`}
                           onClick={() =>
                             setFormData({ ...formData, icon: item.name })
                           }
@@ -861,6 +881,26 @@ export function CategoriesPage() {
                     modal
                   />
                 </div>
+
+                {/* Budget field - only for expense categories */}
+                {formData.type === "expense" && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      {t("budget")} ({t("monthly_limit")})
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.budget}
+                      onChange={(e) =>
+                        setFormData({ ...formData, budget: e.target.value })
+                      }
+                      placeholder="0.00"
+                    />
+                  </div>
+                )}
+
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="active-mode"
@@ -882,7 +922,7 @@ export function CategoriesPage() {
         </div>
       </div>
 
-      {/* Mobile View: Card Stack with Collapsible */}
+      {/* Mobile View: Grouped by Type */}
       <div className="space-y-3 md:hidden">
         {!categories ? (
           // Skeleton loading state
@@ -909,16 +949,96 @@ export function CategoriesPage() {
             {t("no_categories") || "No categories"}
           </div>
         ) : (
-          <MobileCategoryList
-            categories={rootCategories}
-            depth={0}
-            getChildren={getChildren}
-            hasChildren={hasChildren}
-            expandedCategories={expandedCategories}
-            toggleCategory={toggleCategory}
-            onCategoryClick={handleCategoryClick}
-            t={t}
-          />
+          <div className="pb-20">
+            {/* Render each type group */}
+            {["income", "expense", "investment"].map((type) => {
+              const categoriesOfType = filteredCategories.filter(c => c.type === type);
+              if (categoriesOfType.length === 0) return null;
+
+              // Toggle function using component-level state
+              const toggleExpand = (categoryId: string) => {
+                setExpandedCategoryIds(prev => {
+                  const newSet = new Set(prev);
+                  if (newSet.has(categoryId)) {
+                    newSet.delete(categoryId);
+                  } else {
+                    newSet.add(categoryId);
+                  }
+                  return newSet;
+                });
+              };
+
+              // Recursive function to render a category and its children
+              const renderCategory = (category: Category, depth: number = 0, index: number = 0): React.ReactNode => {
+                const children = categoriesOfType.filter(c => c.parent_id === category.id);
+                const budget = category.type === "expense" ? getBudgetForCategory(category.id) : null;
+                const isExpanded = expandedCategoryIds.has(category.id);
+
+                return (
+                  <motion.div
+                    key={category.id}
+                    className={depth > 0 ? "mt-1" : ""}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{
+                      duration: 0.2,
+                      delay: depth === 0 ? index * 0.05 : 0, // Stagger only for root categories
+                    }}
+                  >
+                    <div
+                      style={{
+                        marginLeft: depth > 0 ? `${depth * 16}px` : '0',
+                        paddingLeft: depth > 0 ? '8px' : '0',
+                        borderLeft: depth > 0 ? '2px solid hsl(var(--muted))' : 'none'
+                      }}
+                    >
+                      <MobileCategoryRow
+                        category={category}
+                        onEdit={handleEdit}
+                        onDelete={handleDeleteClick}
+                        childCount={children.length}
+                        budgetAmount={budget?.amount}
+                        isExpanded={isExpanded}
+                        onToggleExpand={children.length > 0 ? () => toggleExpand(category.id) : undefined}
+                      />
+                    </div>
+
+                    {/* Recursively render children - only if expanded - with AnimatePresence */}
+                    <AnimatePresence>
+                      {children.length > 0 && isExpanded && (
+                        <motion.div
+                          className="space-y-1 overflow-hidden"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease: "easeInOut" }}
+                        >
+                          {children.map((child, childIndex) => renderCategory(child, depth + 1, childIndex))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              };
+
+              // Get root categories (no parent) for this type
+              const rootCategories = categoriesOfType.filter(c => !c.parent_id);
+
+              return (
+                <div key={type} className="mb-6">
+                  {/* Type header */}
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-3 px-1 sticky top-0 bg-background/95 backdrop-blur z-10 py-2 uppercase tracking-wider">
+                    {t(type)}
+                  </h3>
+
+                  <div className="space-y-4">
+                    {rootCategories.map((category, index) => renderCategory(category, 0, index))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
@@ -1006,14 +1126,11 @@ export function CategoriesPage() {
                 parentName:
                   conflictData?.parentName || t("root_category") || "Root",
               }) ||
-                `This category has ${
-                  conflictData?.childrenCount
-                } subcategories. ${
-                  conflictData?.action === "delete"
-                    ? "Deleting"
-                    : "Deactivating"
-                } it will make them inaccessible. Do you want to move them to the parent category (${
-                  conflictData?.parentName || "Root"
+                `This category has ${conflictData?.childrenCount
+                } subcategories. ${conflictData?.action === "delete"
+                  ? "Deleting"
+                  : "Deactivating"
+                } it will make them inaccessible. Do you want to move them to the parent category (${conflictData?.parentName || "Root"
                 })?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
