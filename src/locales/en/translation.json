@@ -378,5 +378,11 @@
   "install_app_desc": "Install this app on your device for a better experience.",
   "install": "Install",
   "more_options": "More",
-  "expense_breakdown_desc": "Detailed spending by category hierarchy"
+  "expense_breakdown_desc": "Detailed spending by category hierarchy",
+  "personal_categories": "Personal",
+  "group_category": "Group Category",
+  "group_category_delete_warning": "This is a group category. Deleting it will affect all group members.",
+  "select_group_for_category": "Select Group (Optional)",
+  "personal_category": "Personal Category",
+  "no_parent": "No Parent"
 }

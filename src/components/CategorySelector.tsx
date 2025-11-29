@@ -40,6 +40,7 @@ interface CategorySelectorProps {
   type?: "income" | "expense" | "investment";
   excludeId?: string;
   modal?: boolean;
+  groupId?: string | null; // Filter by group
 }
 
 interface CategoryNode extends Category {
@@ -53,8 +54,9 @@ export function CategorySelector({
   type,
   excludeId,
   modal = false,
+  groupId,
 }: CategorySelectorProps) {
-  const { categories } = useCategories();
+  const { categories } = useCategories(groupId);
   const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);

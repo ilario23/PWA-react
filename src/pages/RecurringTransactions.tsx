@@ -96,6 +96,13 @@ export function RecurringTransactionsPage() {
     }
   }, [formData.type, editingId]);
 
+  // Reset category when group changes
+  useEffect(() => {
+    if (editingId === null) { // Only for new recurring transactions
+      setFormData((prev) => ({ ...prev, category_id: "" }));
+    }
+  }, [formData.group_id, editingId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -385,6 +392,7 @@ export function RecurringTransactionsPage() {
                       setFormData({ ...formData, category_id: value })
                     }
                     type={formData.type}
+                    groupId={formData.group_id || null}
                     modal
                   />
                 </div>

@@ -14,6 +14,7 @@ interface MobileCategoryRowProps {
   budgetAmount?: number; // Monthly budget limit for expense categories
   isExpanded?: boolean;
   onToggleExpand?: () => void;
+  groupName?: string; // Name of the group (if group category)
 }
 
 export function MobileCategoryRow({
@@ -25,6 +26,7 @@ export function MobileCategoryRow({
   budgetAmount,
   isExpanded,
   onToggleExpand,
+  groupName,
 }: MobileCategoryRowProps) {
   const { t } = useTranslation();
   const IconComp = category.icon ? getIconComponent(category.icon) : null;
@@ -103,9 +105,8 @@ export function MobileCategoryRow({
           touchAction: "pan-y",
           cursor: childCount && childCount > 0 ? "pointer" : "default",
         }}
-        className={`relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px] ${
-          isInactive ? "opacity-60" : ""
-        }`}
+        className={`relative bg-card p-3 rounded-lg border shadow-sm flex items-center gap-3 h-[72px] ${isInactive ? "opacity-60" : ""
+          }`}
       >
         {/* Icon */}
         <div
@@ -126,6 +127,11 @@ export function MobileCategoryRow({
         <div className="flex-1 min-w-0 flex flex-col justify-center">
           <div className="flex items-center gap-2">
             <div className="font-medium text-sm truncate">{category.name}</div>
+            {groupName && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-primary/50 text-primary shrink-0">
+                {groupName}
+              </Badge>
+            )}
             {childCount !== undefined && childCount > 0 && (
               <>
                 <Badge

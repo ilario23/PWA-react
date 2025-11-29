@@ -1,9 +1,10 @@
 import React from "react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useTranslation } from "react-i18next";
 import { useCategories } from "@/hooks/useCategories";
 import { useCategoryBudgets } from "@/hooks/useCategoryBudgets";
+import { useGroups } from "@/hooks/useGroups";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -38,7 +39,14 @@ import {
 } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, ChevronRight, ChevronDown, MoreVertical, EyeOff } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, X, ChevronRight, ChevronDown, MoreVertical, EyeOff, MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { CategoryDetailSheet } from "@/components/CategoryDetailSheet";
 import { AVAILABLE_ICONS, getIconComponent } from "@/lib/icons";
@@ -60,6 +68,7 @@ interface CategoryListProps {
   toggleCategory: (id: string) => void;
   onCategoryClick: (category: Category) => void;
   t: (key: string) => string;
+  groups: any[]; // Groups array for displaying group names
 }
 
 // Deleted the old MobileCategoryList component since mobile rendering is handled
@@ -75,6 +84,7 @@ function DesktopCategoryRows({
   toggleCategory,
   onCategoryClick,
   t,
+  groups,
 }: CategoryListProps) {
   const maxDepth = 5; // Prevent infinite recursion
 
@@ -148,6 +158,11 @@ function DesktopCategoryRows({
                       ) : null;
                     })()}
                   <span className={isRoot ? "" : "text-sm"}>{c.name}</span>
+                  {c.group_id && (
+                    <Badge variant="outline" className="text-xs ml-1 border-primary/50 text-primary">
+                      {groups?.find((g) => g.id === c.group_id)?.name || t("group")}
+                    </Badge>
+                  )}
                   {children.length > 0 && (
                     <Badge variant="secondary" className="text-xs ml-1">
                       {children.length}
@@ -200,6 +215,7 @@ function DesktopCategoryRows({
                 toggleCategory={toggleCategory}
                 onCategoryClick={onCategoryClick}
                 t={t}
+                groups={groups}
               />
             )}
           </React.Fragment>
@@ -211,13 +227,19 @@ function DesktopCategoryRows({
 
 export function CategoriesPage() {
   const { t } = useTranslation();
+
+  // Filter State - must be defined before hook calls
+  const [selectedGroupFilter, setSelectedGroupFilter] = useState<string | null | undefined>(undefined);
+
   const {
     categories,
     addCategory,
     updateCategory,
     deleteCategory,
     reparentChildren,
-  } = useCategories();
+  } = useCategories(selectedGroupFilter);
+
+  const { groups } = useGroups();
   const {
     budgetsWithSpent,
     setCategoryBudget,
@@ -273,7 +295,18 @@ export function CategoriesPage() {
     parent_id: "",
     active: true,
     budget: "", // Budget amount for expense categories
+    group_id: "", // Group ID for group categories
   });
+
+  // Reset parent_id when group_id changes to prevent cross-group parent-child relationships
+  useEffect(() => {
+    // Only reset if we're actively editing the form (not on initial mount)
+    if (formData.name || formData.icon) {
+      setFormData((prev) => ({
+        ...prev, parent_id: ""
+      }));
+    }
+  }, [formData.group_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -317,6 +350,7 @@ export function CategoriesPage() {
         icon: formData.icon,
         parent_id: formData.parent_id || undefined,
         active: formData.active ? 1 : 0,
+        group_id: formData.group_id || undefined,
       });
 
       // Handle budget for expense categories
@@ -340,6 +374,7 @@ export function CategoriesPage() {
           icon: formData.icon,
           parent_id: formData.parent_id || undefined,
           active: formData.active ? 1 : 0,
+          group_id: formData.group_id || undefined,
         } as any),
       });
 
@@ -358,6 +393,7 @@ export function CategoriesPage() {
       parent_id: "",
       active: true,
       budget: "",
+      group_id: "",
     });
   };
 
@@ -375,6 +411,7 @@ export function CategoriesPage() {
       parent_id: category.parent_id || "",
       active: category.active !== 0,
       budget: categoryBudget ? categoryBudget.amount.toString() : "",
+      group_id: category.group_id || "",
     });
     setIsOpen(true);
   };
@@ -389,6 +426,7 @@ export function CategoriesPage() {
       parent_id: "",
       active: true,
       budget: "",
+      group_id: "",
     });
     setIsOpen(true);
   };
@@ -405,11 +443,23 @@ export function CategoriesPage() {
       (c) => c.parent_id === id && !c.deleted_at
     );
 
+    // Check if it's a group category
+    const category = categories?.find((c) => c.id === id);
+    const isGroupCategory = !!category?.group_id;
+
     if (transactionCount > 0) {
       // Show warning about transactions
       alert(
         t("category_has_transactions_warning", { count: transactionCount }) ||
         `Warning: This category has ${transactionCount} associated transaction(s). Deleting it will leave these transactions without a category.`
+      );
+    }
+
+    if (isGroupCategory) {
+      // Show warning about group category
+      alert(
+        t("group_category_delete_warning") ||
+        "This is a group category. Deleting it will affect all group members."
       );
     }
 
@@ -475,6 +525,7 @@ export function CategoriesPage() {
         parent_id: "",
         active: true,
         budget: "",
+        group_id: "",
       });
     }
 
@@ -556,7 +607,7 @@ export function CategoriesPage() {
     return 1 + getCategoryDepth(category.parent_id);
   };
 
-  // Track which categories are expanded
+  // Track which categories are expanded (for desktop tree view)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set()
   );
@@ -608,6 +659,29 @@ export function CategoriesPage() {
               {t("show_inactive") || "Inactive"}
             </span>
           </button>
+
+          {/* Group Filter Dropdown */}
+          {groups.length > 0 && (
+            <Select
+              value={selectedGroupFilter === undefined ? "all" : selectedGroupFilter === null ? "personal" : selectedGroupFilter}
+              onValueChange={(value) =>
+                setSelectedGroupFilter(value === "all" ? undefined : value === "personal" ? null : value)
+              }
+            >
+              <SelectTrigger className="w-[180px] hidden md:flex">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("all_categories") || "All Categories"}</SelectItem>
+                <SelectItem value="personal">{t("personal_categories") || "Personal"}</SelectItem>
+                {groups.map((group) => (
+                  <SelectItem key={group.id} value={group.id}>
+                    {group.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <Button
@@ -750,9 +824,66 @@ export function CategoriesPage() {
                     }
                     type={formData.type}
                     excludeId={editingId || undefined}
+                    groupId={formData.group_id || null}
                     modal
                   />
                 </div>
+
+                {/* Group Selection - Collapsible */}
+                {groups.length > 0 && (
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="w-full flex items-center justify-between p-2 h-auto"
+                      >
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="text-sm font-medium">
+                            {t("group") || "Group"}
+                          </span>
+                          {formData.group_id && (
+                            <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                              1
+                            </span>
+                          )}
+                        </div>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-3 pt-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          {t("select_group_for_category") || "Select Group (Optional)"}
+                        </label>
+                        <Select
+                          value={formData.group_id || "none"}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              group_id: value === "none" ? "" : value,
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={t("select_group") || "Select Group"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">
+                              {t("personal_category") || "Personal Category"}
+                            </SelectItem>
+                            {groups.map((group) => (
+                              <SelectItem key={group.id} value={group.id}>
+                                {group.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
 
                 {/* Budget and Active fields */}
                 <div className="flex items-end gap-4">
@@ -890,6 +1021,12 @@ export function CategoriesPage() {
                         childCount={children.length}
                         budgetAmount={budget?.amount}
                         isExpanded={isExpanded}
+                        groupName={
+                          category.group_id
+                            ? groups?.find((g) => g.id === category.group_id)
+                              ?.name
+                            : undefined
+                        }
                         onToggleExpand={
                           children.length > 0
                             ? () => toggleExpand(category.id)
@@ -994,6 +1131,7 @@ export function CategoriesPage() {
                 toggleCategory={toggleCategory}
                 onCategoryClick={handleCategoryClick}
                 t={t}
+                groups={groups}
               />
             )}
           </TableBody>

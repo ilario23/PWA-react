@@ -55,8 +55,8 @@ export function useCategories(groupId?: string | null) {
         // Return only personal categories
         return !c.group_id;
       } else {
-        // Return only categories for specific group OR personal categories
-        return c.group_id === groupId || !c.group_id;
+        // Return only categories for specific group (no personal)
+        return c.group_id === groupId;
       }
     }) || [];
 
